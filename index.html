@@ -811,13 +811,22 @@
     }
     function createSlopeGeometry(width, depth, height, inverse) {
       const low = .08;
-      const frontHeight = inverse ? height : low;
-      const backHeight = inverse ? low : height;
+      const shelfDepth = Math.min(.48, depth * .34);
+      if (inverse) {
+        return createProfilePrism([
+          [-depth / 2, height],
+          [-depth / 2, 0],
+          [depth / 2, 0],
+          [depth / 2, low],
+          [-depth / 2 + shelfDepth, height]
+        ], width);
+      }
       return createProfilePrism([
-        [-depth / 2, frontHeight],
+        [-depth / 2, low],
         [-depth / 2, 0],
         [depth / 2, 0],
-        [depth / 2, backHeight]
+        [depth / 2, height],
+        [depth / 2 - shelfDepth, height]
       ], width);
     }
     function createRoofRidgeGeometry(width, depth, height) {
@@ -837,7 +846,10 @@
       if (part.shape === "slope" || part.shape === "inverse-slope") {
         mesh = new THREE.Mesh(createSlopeGeometry(width, depth, height, part.shape === "inverse-slope"), material);
         target.add(mesh);
-        const studZ = part.shape === "inverse-slope" ? depth / 2 - .22 : -depth / 2 + .22;
+        const shelfDepth = Math.min(.48, depth * .34);
+        const studZ = part.shape === "inverse-slope"
+          ? depth / 2 - shelfDepth / 2
+          : -depth / 2 + shelfDepth / 2;
         for (let col = 0; col < part.cols; col += 1) {
           const stud = new THREE.Mesh(new THREE.CylinderGeometry(.20, .20, .10, 28), material);
           stud.position.set(-width / 2 + unit * (col + .5), height + .05, studZ);
