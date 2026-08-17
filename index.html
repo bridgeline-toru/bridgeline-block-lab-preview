@@ -149,12 +149,7 @@
     .viewer-spec span { color:var(--muted); }
     .viewer-close { position:absolute; z-index:2; top:13px; right:13px; width:36px; height:36px; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--ink); cursor:pointer; font-size:22px; line-height:1; }
     .viewer-reset { position:absolute; z-index:2; left:16px; bottom:16px; min-height:38px; padding:0 12px; border:1px solid var(--line); border-radius:5px; background:rgba(255,255,255,.92); color:var(--ink); font-size:13px; font-weight:700; cursor:pointer; }
-    .height-guide { position:absolute; z-index:2; top:18px; left:17px; display:flex; align-items:center; gap:7px; padding:7px 9px 7px 7px; border:1px solid rgba(128,156,145,.62); border-radius:5px; background:rgba(255,255,255,.9); color:#3b584e; font-size:11px; font-weight:800; pointer-events:none; }
-    .height-guide-track { display:flex; flex-direction:column; justify-content:space-between; width:14px; min-height:32px; border-left:2px dashed #2e8a74; }
-    .height-guide-track i { display:block; width:9px; border-top:2px solid #2e8a74; }
-    .height-guide-copy { display:flex; flex-direction:column; gap:2px; }
-    .height-guide-copy strong { font-size:12px; color:var(--ink); }
-    .height-guide-copy span { color:#587068; font-size:10px; }
+
     @media (max-width: 780px) {
       .app { padding: 16px; }
       .topbar { align-items: flex-start; }
@@ -283,10 +278,6 @@
         <button class="viewer-close" id="viewer-close" type="button" aria-label="立体図を閉じる">×</button>
         <div class="viewer-modal-canvas">
           <canvas id="part-3d-canvas"></canvas>
-          <div class="height-guide" id="viewer-height-guide" aria-hidden="true">
-            <div class="height-guide-track" id="viewer-height-guide-track"></div>
-            <div class="height-guide-copy"><strong id="viewer-height-guide-value">厚み 3段</strong><span>点線は見分け用の目安</span></div>
-          </div>
           <button class="viewer-reset" id="viewer-reset" type="button">見やすい角度に戻す</button>
         </div>
         <aside class="viewer-modal-info">
@@ -699,6 +690,32 @@
       edges.rotation.copy(mesh.rotation);
       model.add(edges);
     }
+    function addHeightGuideLines(width, depth, height, steps) {
+      if (steps < 2) return;
+      const guideMaterial = new THREE.LineDashedMaterial({
+        color: 0x166c5a,
+        dashSize: .12,
+        gapSize: .08,
+        linewidth: 1
+      });
+      function addDashedLine(points) {
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, guideMaterial);
+        line.computeLineDistances();
+        model.add(line);
+      }
+      for (let step = 1; step < steps; step += 1) {
+        const y = height * step / steps;
+        addDashedLine([
+          new THREE.Vector3(-width / 2, y, depth / 2 + .014),
+          new THREE.Vector3(width / 2, y, depth / 2 + .014)
+        ]);
+        addDashedLine([
+          new THREE.Vector3(width / 2 + .014, y, -depth / 2),
+          new THREE.Vector3(width / 2 + .014, y, depth / 2)
+        ]);
+      }
+    }
     function addStud(material, x, y, z) {
       const stud = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .12, 32), material);
       stud.position.set(x, y, z);
@@ -777,6 +794,8 @@
         body.receiveShadow = true;
         model.add(body);
         addEdges(body);
+        const heightUnits = part.heightUnits || (Number.parseInt(part.height, 10) > 12 ? 3 : 1);
+        addHeightGuideLines(width, depth, height, heightUnits);
         for (let col = 0; col < part.cols; col += 1) {
           for (let row = 0; row < part.rows; row += 1) {
             const x = -width / 2 + unit * (col + .5);
@@ -795,15 +814,10 @@
       document.querySelector("#viewer-3d-title").textContent = part.name;
       document.querySelector("#viewer-3d-description").textContent = part.description;
       const heightUnits = part.heightUnits || (Number.parseInt(part.height, 10) > 12 ? 3 : 1);
-      const guide = document.querySelector("#viewer-height-guide");
-      const guideTrack = document.querySelector("#viewer-height-guide-track");
-      document.querySelector("#viewer-height-guide-value").textContent = "厚み " + heightUnits + "段";
-      guideTrack.style.height = Math.max(32, heightUnits * 18) + "px";
-      guideTrack.innerHTML = Array.from({ length: heightUnits + 1 }, () => "<i></i>").join("");
-      guide.hidden = part.id === "WHEEL" || part.id === "PIN-S" || part.id === "PIN-L" || part.id === "JOINT" || part.id === "OTHER";
+      const guideText = heightUnits > 1 ? heightUnits + "段 / 側面に点線 " + (heightUnits - 1) + "本" : "1段 / 側面の点線なし";
       document.querySelector("#viewer-3d-spec").innerHTML = [
         ["上面の凸", part.rows + "行 × " + part.cols + "列"],
-        ["厚みの目安", heightUnits + "段 (" + height + ")"],
+        ["厚み", guideText],
         ["特徴", part.sideHole ? "側面に穴あり" : (part.id === "WHEEL" ? "車輪2個で1セット" : part.id === "PIN-S" || part.id === "PIN-L" ? "接続棒" : "横穴なし")]
       ].map(([name, value]) => "<li><span>" + name + "</span><strong>" + value + "</strong></li>").join("");
     }
