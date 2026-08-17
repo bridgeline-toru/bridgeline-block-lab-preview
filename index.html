@@ -690,32 +690,6 @@
       edges.rotation.copy(mesh.rotation);
       model.add(edges);
     }
-    function addHeightGuideLines(width, depth, height, steps) {
-      if (steps < 2) return;
-      const guideMaterial = new THREE.LineDashedMaterial({
-        color: 0x166c5a,
-        dashSize: .12,
-        gapSize: .08,
-        linewidth: 1
-      });
-      function addDashedLine(points) {
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geometry, guideMaterial);
-        line.computeLineDistances();
-        model.add(line);
-      }
-      for (let step = 1; step < steps; step += 1) {
-        const y = height * step / steps;
-        addDashedLine([
-          new THREE.Vector3(-width / 2, y, depth / 2 + .014),
-          new THREE.Vector3(width / 2, y, depth / 2 + .014)
-        ]);
-        addDashedLine([
-          new THREE.Vector3(width / 2 + .014, y, -depth / 2),
-          new THREE.Vector3(width / 2 + .014, y, depth / 2)
-        ]);
-      }
-    }
     function addStud(material, x, y, z) {
       const stud = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .12, 32), material);
       stud.position.set(x, y, z);
@@ -794,8 +768,6 @@
         body.receiveShadow = true;
         model.add(body);
         addEdges(body);
-        const heightUnits = part.heightUnits || (Number.parseInt(part.height, 10) > 12 ? 3 : 1);
-        addHeightGuideLines(width, depth, height, heightUnits);
         for (let col = 0; col < part.cols; col += 1) {
           for (let row = 0; row < part.rows; row += 1) {
             const x = -width / 2 + unit * (col + .5);
@@ -813,11 +785,11 @@
       document.querySelector("#viewer-3d-code").textContent = part.code;
       document.querySelector("#viewer-3d-title").textContent = part.name;
       document.querySelector("#viewer-3d-description").textContent = part.description;
-      const heightUnits = part.heightUnits || (Number.parseInt(part.height, 10) > 12 ? 3 : 1);
-      const guideText = heightUnits > 1 ? heightUnits + "段 / 側面に点線 " + (heightUnits - 1) + "本" : "1段 / 側面の点線なし";
+      const standardHeight = Number.parseInt(part.height, 10) > 12;
+      const heightText = standardHeight ? "高さあり (薄い板3枚分)" : "薄い板 (高さありの1/3)";
       document.querySelector("#viewer-3d-spec").innerHTML = [
         ["上面の凸", part.rows + "行 × " + part.cols + "列"],
-        ["厚み", guideText],
+        ["高さ", heightText],
         ["特徴", part.sideHole ? "側面に穴あり" : (part.id === "WHEEL" ? "車輪2個で1セット" : part.id === "PIN-S" || part.id === "PIN-L" ? "接続棒" : "横穴なし")]
       ].map(([name, value]) => "<li><span>" + name + "</span><strong>" + value + "</strong></li>").join("");
     }
