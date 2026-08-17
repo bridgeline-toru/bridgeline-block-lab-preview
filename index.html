@@ -837,7 +837,7 @@
       if (part.shape === "slope" || part.shape === "inverse-slope") {
         mesh = new THREE.Mesh(createSlopeGeometry(width, depth, height, part.shape === "inverse-slope"), material);
         target.add(mesh);
-        const studZ = part.shape === "inverse-slope" ? -depth / 2 + .22 : depth / 2 - .22;
+        const studZ = part.shape === "inverse-slope" ? depth / 2 - .22 : -depth / 2 + .22;
         for (let col = 0; col < part.cols; col += 1) {
           const stud = new THREE.Mesh(new THREE.CylinderGeometry(.20, .20, .10, 28), material);
           stud.position.set(-width / 2 + unit * (col + .5), height + .05, studZ);
