@@ -702,6 +702,29 @@
       edges.rotation.copy(mesh.rotation);
       model.add(edges);
     }
+    function addDoubleHeightDivider(width, depth, height) {
+      const dividerMaterial = new THREE.LineDashedMaterial({
+        color: 0x166c5a,
+        dashSize: .12,
+        gapSize: .08,
+        linewidth: 1
+      });
+      function addDashedLine(points) {
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, dividerMaterial);
+        line.computeLineDistances();
+        model.add(line);
+      }
+      const y = height / 2;
+      addDashedLine([
+        new THREE.Vector3(-width / 2, y, depth / 2 + .014),
+        new THREE.Vector3(width / 2, y, depth / 2 + .014)
+      ]);
+      addDashedLine([
+        new THREE.Vector3(width / 2 + .014, y, -depth / 2),
+        new THREE.Vector3(width / 2 + .014, y, depth / 2)
+      ]);
+    }
     function addStud(material, x, y, z) {
       const stud = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .12, 32), material);
       stud.position.set(x, y, z);
@@ -780,6 +803,7 @@
         body.receiveShadow = true;
         model.add(body);
         addEdges(body);
+        if (Number.parseInt(part.height, 10) >= 48) addDoubleHeightDivider(width, depth, height);
         for (let col = 0; col < part.cols; col += 1) {
           for (let row = 0; row < part.rows; row += 1) {
             const x = -width / 2 + unit * (col + .5);
@@ -799,7 +823,7 @@
       document.querySelector("#viewer-3d-description").textContent = part.description;
       const sourceHeight = Number.parseInt(part.height, 10);
       const heightText = sourceHeight >= 48
-        ? "高さ2 (薄い板6枚分)"
+        ? "高さ2 (薄い板6枚分・中央に点線)"
         : sourceHeight > 12
           ? "高さあり (薄い板3枚分)"
           : "薄い板 (高さありの1/3)";
