@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ブロック発明ラボ - 試作画面</title>
+  <style>
+    :root {
+      --ink: #18232c;
+      --muted: #64727d;
+      --paper: #f6f7f4;
+      --panel: #ffffff;
+      --line: #dbe1dc;
+      --green: #0d806e;
+      --green-soft: #dff3eb;
+      --yellow: #f7c948;
+      --orange: #eb7d4d;
+      --blue: #2f7db6;
+      --shadow: 0 10px 26px rgba(24, 35, 44, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+
+    button { font: inherit; }
+    .app { max-width: 1180px; margin: 0 auto; padding: 22px 24px 36px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 22px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 44px; height: 44px; display: grid; place-items: center;
+      border-radius: 8px; color: #fff; background: var(--green); font-weight: 800; letter-spacing: 0;
+    }
+    .brand h1 { margin: 0; font-size: 21px; letter-spacing: 0; }
+    .brand p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+    .status { padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--muted); font-size: 13px; }
+
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+    .step { min-height: 58px; padding: 10px 14px; border: 1px solid var(--line); background: #fff; border-radius: 6px; color: var(--muted); }
+    .step strong { display: block; font-size: 13px; color: inherit; }
+    .step span { display: block; margin-top: 4px; font-size: 12px; }
+    .step.active { border-color: var(--green); background: var(--green-soft); color: var(--ink); }
+    .step.complete { border-color: #9fcdbf; color: var(--green); }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(270px, .7fr); gap: 18px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+    .panel-inner { padding: 22px; }
+    h2 { margin: 0; font-size: 23px; letter-spacing: 0; }
+    .lead { margin: 8px 0 0; line-height: 1.7; color: var(--muted); font-size: 14px; }
+    .hint { margin-top: 16px; padding: 10px 12px; border-left: 4px solid var(--yellow); background: #fff8dc; font-size: 13px; line-height: 1.6; }
+
+    .parts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .part-card { min-height: 140px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .part-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .part-shape { height: 38px; display: flex; gap: 4px; align-items: flex-end; }
+    .stud { width: 15px; height: 15px; background: var(--part-color); border-radius: 3px 3px 1px 1px; box-shadow: inset 0 -3px rgba(0,0,0,.08); }
+    .part-card h3 { margin: 0; font-size: 16px; }
+    .part-card p { min-height: 34px; margin: 7px 0 12px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .counter { display: flex; align-items: center; gap: 10px; }
+    .icon-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); cursor: pointer; font-size: 20px; line-height: 1; }
+    .icon-btn:hover { border-color: var(--green); color: var(--green); }
+    .count { width: 30px; text-align: center; font-weight: 800; font-size: 19px; }
+    .count-label { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+    .summary { position: sticky; top: 18px; }
+    .summary-head { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
+    .summary-head h3 { margin: 0; font-size: 16px; }
+    .total { display: flex; align-items: baseline; gap: 6px; margin-top: 8px; }
+    .total strong { color: var(--green); font-size: 36px; }
+    .total span { color: var(--muted); font-size: 13px; }
+    .inventory { padding: 14px 18px; min-height: 142px; }
+    .inventory-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #edf0ed; font-size: 13px; }
+    .inventory-row:last-child { border-bottom: 0; }
+    .empty { color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .summary-foot { padding: 14px 18px 18px; border-top: 1px solid var(--line); }
+
+    .primary { min-height: 46px; width: 100%; border: 0; border-radius: 6px; background: var(--green); color: #fff; font-weight: 700; cursor: pointer; }
+    .primary:hover { background: #096a5b; }
+    .primary:disabled { background: #aeb8b4; cursor: not-allowed; }
+    .secondary { min-height: 42px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); font-weight: 700; cursor: pointer; padding: 0 16px; }
+
+    .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .theme-card { position: relative; min-height: 132px; text-align: left; padding: 17px; border: 2px solid var(--line); border-radius: 7px; background: #fff; cursor: pointer; }
+    .theme-card:hover, .theme-card.selected { border-color: var(--green); background: #f4fcf8; }
+    .theme-card.selected::after { content: "選択中"; position: absolute; top: 12px; right: 12px; font-size: 11px; font-weight: 700; color: var(--green); }
+    .theme-card h3 { margin: 0; font-size: 17px; }
+    .theme-card p { margin: 8px 0 0; color: var(--muted); line-height: 1.5; font-size: 12px; }
+    .required { margin-top: 10px; color: var(--blue); font-size: 12px; }
+
+    .recipe-header { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .match { padding: 8px 10px; border-radius: 5px; background: var(--green-soft); color: var(--green); font-weight: 800; font-size: 13px; white-space: nowrap; }
+    .need-list { margin: 20px 0; padding: 0; list-style: none; }
+    .need-list li { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid #edf0ed; font-size: 14px; }
+    .have { color: var(--green); font-weight: 700; }
+    .missing { color: #b34c2e; font-weight: 700; }
+
+    .station { margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .station-card { min-height: 108px; padding: 14px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .station-card h4 { margin: 0; font-size: 14px; }
+    .station-card p { margin: 6px 0 10px; color: var(--muted); font-size: 12px; }
+    .station-card .counter { gap: 7px; }
+    .station-card .icon-btn { width: 30px; height: 30px; }
+
+    .result { text-align: center; padding: 42px 24px; }
+    .result-mark { width: 68px; height: 68px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 8px; background: var(--green-soft); color: var(--green); font-size: 32px; font-weight: 900; }
+    .result h2 { font-size: 26px; }
+    .result p { max-width: 500px; margin: 12px auto; color: var(--muted); line-height: 1.7; }
+    .result-box { max-width: 540px; margin: 22px auto; text-align: left; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .result-box h3 { margin: 0 0 10px; font-size: 15px; }
+    .result-box ul { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.8; font-size: 14px; }
+
+    @media (max-width: 780px) {
+      .app { padding: 16px; }
+      .topbar { align-items: flex-start; }
+      .status { display: none; }
+      .layout { grid-template-columns: 1fr; }
+      .summary { position: static; }
+      .parts-grid, .theme-grid, .station { grid-template-columns: 1fr; }
+      .steps { gap: 5px; }
+      .step { padding: 9px; }
+      .step span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">BL</div>
+        <div>
+          <h1>ブロック発明ラボ</h1>
+          <p>おうちの余りブロックから、新しい作品をつくろう</p>
+        </div>
+      </div>
+      <div class="status">試作版 / データは保存しません</div>
+    </header>
+
+    <nav class="steps" aria-label="作業の進み具合">
+      <div class="step active" data-step-indicator="1"><strong>1. 数える</strong><span>持ってきたブロックを見つけよう</span></div>
+      <div class="step" data-step-indicator="2"><strong>2. えらぶ</strong><span>作りたいものを決めよう</span></div>
+      <div class="step" data-step-indicator="3"><strong>3. つくる</strong><span>足りない部品を考えよう</span></div>
+    </nav>
+
+    <section class="screen active" id="screen-1">
+      <div class="layout">
+        <section class="panel">
+          <div class="panel-inner">
+            <h2>持ってきたブロックを数えよう</h2>
+            <p class="lead">同じ仲間を見つけたら、下の見本をタップして数えます。迷った部品は「その他」で大丈夫。</p>
+            <div class="hint">紙コップ一杯分を、少しずつ数えます。全部を正確に数えなくても、作るのに大事そうなものからでOK。</div>
+            <div class="parts-grid" id="parts-grid"></div>
+          </div>
+        </section>
+
+        <aside class="panel summary">
+          <div class="summary-head">
+            <h3>きみの材料</h3>
+            <div class="total"><strong id="total-count">0</strong><span>こ</span></div>
+          </div>
+          <div class="inventory" id="inventory"></div>
+          <div class="summary-foot">
+            <button class="primary" id="to-theme" disabled>作りたいものをえらぶ</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-2">
+      <div class="layout">
+        <section class="panel">
+          <div class="panel-inner">
+            <h2>何を作りたい？</h2>
+            <p class="lead">正解はありません。今ある材料から始められそうなものを一つ選ぼう。</p>
+            <div class="theme-grid" id="theme-grid"></div>
+          </div>
+        </section>
+
+        <aside class="panel summary">
+          <div class="summary-head">
+            <h3>選んだアイデア</h3>
+            <div class="total"><strong id="selected-name">?</strong></div>
+          </div>
+          <div class="inventory" id="theme-summary"></div>
+          <div class="summary-foot">
+            <button class="secondary" id="back-to-count">数え直す</button>
+            <div style="height:8px"></div>
+            <button class="primary" id="to-station" disabled>材料をそろえる</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-3">
+      <div class="panel">
+        <div class="panel-inner">
+          <div class="recipe-header">
+            <div>
+              <h2 id="recipe-title">材料をそろえよう</h2>
+              <p class="lead" id="recipe-lead">持っているものと、共有部品ステーションから借りるものを見てみよう。</p>
+            </div>
+            <div class="match" id="match-label">準備中</div>
+          </div>
+          <ul class="need-list" id="need-list"></ul>
+          <div class="hint">共有部品は、最初に3種類・合計10個まで。何のために使うか考えてから選ぼう。</div>
+          <div class="station" id="station"></div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:22px;">
+            <button class="secondary" id="back-to-theme">作りたいものを変える</button>
+            <button class="primary" style="width:auto; padding:0 22px;" id="finish">この材料でつくり始める</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-4">
+      <div class="panel result">
+        <div class="result-mark">!</div>
+        <h2>発明の材料がそろったよ</h2>
+        <p id="result-copy"></p>
+        <div class="result-box">
+          <h3>つくる時のチャレンジ</h3>
+          <ul>
+            <li>まずは、作品の土台になる形を作る。</li>
+            <li>途中で一か所だけ、自分のアイデアで変える。</li>
+            <li>できたら、作品の名前と役目を決める。</li>
+          </ul>
+        </div>
+        <button class="primary" style="max-width:300px" id="restart">もう一度ためす</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const parts = [
+      { id: "square", name: "四角ブロック", description: "短くて、積みやすい仲間", color: "#e96d55", studs: 2 },
+      { id: "long", name: "長いブロック", description: "橋や壁に使いやすい仲間", color: "#f0b83a", studs: 4 },
+      { id: "flat", name: "平らな板", description: "屋根や土台に使いやすい仲間", color: "#3e9d87", studs: 3 },
+      { id: "connect", name: "丸・つなぐ部品", description: "動きや飾りに使える仲間", color: "#4f82ba", studs: 2 },
+      { id: "other", name: "その他", description: "どの仲間か迷う部品", color: "#8b7eae", studs: 3 }
+    ];
+
+    const themes = [
+      { id: "car", name: "はこぶ車", copy: "だれかの大事なものを運ぶ車", need: { square: 4, long: 4, flat: 2, wheels: 2 } },
+      { id: "castle", name: "まもるおしろ", copy: "入り口と見張り台のあるおしろ", need: { square: 6, long: 2, flat: 2 } },
+      { id: "animal", name: "ふしぎな生きもの", copy: "新しい生きものを発明しよう", need: { square: 4, long: 2, connect: 2 } },
+      { id: "box", name: "たからばこ", copy: "大事なものをしまえる箱", need: { square: 4, long: 2, flat: 1 } },
+      { id: "robot", name: "うごかないロボット", copy: "役目を持ったロボット", need: { square: 5, long: 4, flat: 2, connect: 1 } }
+    ];
+
+    const sharedParts = [
+      { id: "wheels", name: "車輪", note: "車や動くものに", stock: 12 },
+      { id: "long", name: "長い板", note: "橋・屋根・壁に", stock: 18 },
+      { id: "flat", name: "平らな板", note: "土台・屋根に", stock: 14 },
+      { id: "connect", name: "ジョイント", note: "つなぐ・飾る時に", stock: 16 }
+    ];
+
+    const counts = Object.fromEntries(parts.map(part => [part.id, 0]));
+    const borrowed = Object.fromEntries(sharedParts.map(part => [part.id, 0]));
+    let selectedTheme = null;
+
+    const getPartName = id => parts.find(part => part.id === id)?.name || sharedParts.find(part => part.id === id)?.name || id;
+    const totalCount = () => Object.values(counts).reduce((sum, value) => sum + value, 0);
+    const borrowedTotal = () => Object.values(borrowed).reduce((sum, value) => sum + value, 0);
+    const borrowedTypes = () => Object.values(borrowed).filter(value => value > 0).length;
+
+    function renderParts() {
+      document.getElementById("parts-grid").innerHTML = parts.map(part => `
+        <article class="part-card" style="--part-color:${part.color}">
+          <div class="part-head">
+            <div class="part-shape">${Array.from({ length: part.studs }, () => '<span class="stud"></span>').join("")}</div>
+            <span class="count-label">見つけた数</span>
+          </div>
+          <h3>${part.name}</h3>
+          <p>${part.description}</p>
+          <div class="counter">
+            <button class="icon-btn" aria-label="${part.name}を1つ減らす" onclick="changeCount('${part.id}', -1)">−</button>
+            <strong class="count" id="count-${part.id}">${counts[part.id]}</strong>
+            <button class="icon-btn" aria-label="${part.name}を1つ増やす" onclick="changeCount('${part.id}', 1)">＋</button>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderInventory() {
+      const present = parts.filter(part => counts[part.id] > 0);
+      document.getElementById("total-count").textContent = totalCount();
+      document.getElementById("to-theme").disabled = totalCount() === 0;
+      document.getElementById("inventory").innerHTML = present.length
+        ? present.map(part => `<div class="inventory-row"><span>${part.name}</span><strong>${counts[part.id]}こ</strong></div>`).join("")
+        : '<p class="empty">まずは、持ってきたブロックと同じ仲間を見つけて数えよう。</p>';
+    }
+
+    function renderThemes() {
+      document.getElementById("theme-grid").innerHTML = themes.map(theme => {
+        const needs = Object.entries(theme.need).map(([id, number]) => `${getPartName(id)} ${number}こ`).join(" / ");
+        const isSelected = selectedTheme?.id === theme.id ? " selected" : "";
+        return `<button class="theme-card${isSelected}" onclick="selectTheme('${theme.id}')">
+          <h3>${theme.name}</h3>
+          <p>${theme.copy}</p>
+          <div class="required">${needs}</div>
+        </button>`;
+      }).join("");
+    }
+
+    function renderThemeSummary() {
+      const target = document.getElementById("selected-name");
+      const summary = document.getElementById("theme-summary");
+      const next = document.getElementById("to-station");
+      if (!selectedTheme) {
+        target.textContent = "?";
+        summary.innerHTML = '<p class="empty">作品カードを一つ選んでみよう。</p>';
+        next.disabled = true;
+        return;
+      }
+      target.textContent = selectedTheme.name;
+      const needLines = Object.entries(selectedTheme.need).map(([id, value]) => {
+        const have = (counts[id] || 0) + (borrowed[id] || 0);
+        return `<div class="inventory-row"><span>${getPartName(id)}</span><strong>${have >= value ? "足りそう" : "あと " + (value - have) + "こ"}</strong></div>`;
+      }).join("");
+      summary.innerHTML = needLines;
+      next.disabled = false;
+    }
+
+    function renderStation() {
+      if (!selectedTheme) return;
+      document.getElementById("recipe-title").textContent = selectedTheme.name + " の材料";
+      document.getElementById("recipe-lead").textContent = selectedTheme.copy + "。足りないものだけ、共有部品から借りよう。";
+
+      const list = Object.entries(selectedTheme.need).map(([id, need]) => {
+        const own = counts[id] || 0;
+        const shared = borrowed[id] || 0;
+        const total = own + shared;
+        const className = total >= need ? "have" : "missing";
+        const text = total >= need ? "そろった" : "あと " + (need - total) + "こ";
+        return `<li><span>${getPartName(id)} <small style="color:#64727d">必要: ${need}こ</small></span><strong class="${className}">${text}</strong></li>`;
+      }).join("");
+      document.getElementById("need-list").innerHTML = list;
+
+      const complete = Object.entries(selectedTheme.need).every(([id, need]) => (counts[id] || 0) + (borrowed[id] || 0) >= need);
+      document.getElementById("match-label").textContent = complete ? "材料がそろった" : "考えて借りよう";
+      document.getElementById("match-label").style.background = complete ? "var(--green-soft)" : "#fff1e8";
+      document.getElementById("match-label").style.color = complete ? "var(--green)" : "#b34c2e";
+
+      document.getElementById("station").innerHTML = sharedParts.map(part => {
+        const selected = borrowed[part.id];
+        const disabledPlus = selected >= part.stock || borrowedTotal() >= 10 || (selected === 0 && borrowedTypes() >= 3);
+        return `<article class="station-card">
+          <h4>${part.name}</h4><p>${part.note} / のこり ${part.stock - selected}こ</p>
+          <div class="counter">
+            <button class="icon-btn" aria-label="${part.name}を戻す" onclick="changeBorrowed('${part.id}', -1)">−</button>
+            <strong class="count">${selected}</strong>
+            <button class="icon-btn" aria-label="${part.name}を借りる" ${disabledPlus ? "disabled" : ""} onclick="changeBorrowed('${part.id}', 1)">＋</button>
+          </div>
+        </article>`;
+      }).join("");
+    }
+
+    function setScreen(number) {
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
+      document.getElementById("screen-" + number).classList.add("active");
+      document.querySelectorAll("[data-step-indicator]").forEach(indicator => {
+        const step = Number(indicator.dataset.stepIndicator);
+        indicator.classList.toggle("active", step === number);
+        indicator.classList.toggle("complete", step < number);
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    window.changeCount = (id, delta) => {
+      counts[id] = Math.max(0, counts[id] + delta);
+      renderParts();
+      renderInventory();
+      renderThemeSummary();
+    };
+
+    window.selectTheme = id => {
+      selectedTheme = themes.find(theme => theme.id === id);
+      renderThemes();
+      renderThemeSummary();
+    };
+
+    window.changeBorrowed = (id, delta) => {
+      const current = borrowed[id];
+      if (delta > 0 && (borrowedTotal() >= 10 || (current === 0 && borrowedTypes() >= 3))) return;
+      const stock = sharedParts.find(part => part.id === id).stock;
+      borrowed[id] = Math.max(0, Math.min(stock, current + delta));
+      renderThemeSummary();
+      renderStation();
+    };
+
+    document.getElementById("to-theme").addEventListener("click", () => { renderThemes(); renderThemeSummary(); setScreen(2); });
+    document.getElementById("back-to-count").addEventListener("click", () => setScreen(1));
+    document.getElementById("to-station").addEventListener("click", () => { renderStation(); setScreen(3); });
+    document.getElementById("back-to-theme").addEventListener("click", () => setScreen(2));
+    document.getElementById("finish").addEventListener("click", () => {
+      document.getElementById("result-copy").textContent = "「" + selectedTheme.name + "」のために、持ってきた材料と共有部品を自分で選びました。次は一か所を自分のアイデアで変えてみよう。";
+      setScreen(4);
+    });
+    document.getElementById("restart").addEventListener("click", () => {
+      Object.keys(counts).forEach(key => counts[key] = 0);
+      Object.keys(borrowed).forEach(key => borrowed[key] = 0);
+      selectedTheme = null;
+      renderParts();
+      renderInventory();
+      setScreen(1);
+    });
+
+    renderParts();
+    renderInventory();
+  </script>
+</body>
+</html>
