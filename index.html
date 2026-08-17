@@ -335,10 +335,10 @@
       { id: "WHEEL", code: "WHEEL", name: "中くらい車輪セット", description: "ふつうの大きさの車輪2個。", color: "#353c47", cols: 1, rows: 1, height: "0px", vehicle: "wheel-medium" },
       { id: "WHEEL-S", code: "WHEEL-S", name: "小さい車輪セット", description: "小回りがきく小さな車輪2個。", color: "#353c47", cols: 1, rows: 1, height: "0px", vehicle: "wheel-small" },
       { id: "WHEEL-L", code: "WHEEL-L", name: "大きい車輪セット", description: "大きく転がる車輪2個。", color: "#353c47", cols: 1, rows: 1, height: "0px", vehicle: "wheel-large" },
-      { id: "AXLE-S", code: "AXLE-S", name: "短い車軸", description: "小さい車輪をつなぐ短い棒。", color: "#596877", cols: 1, rows: 1, height: "0px", vehicle: "axle-short" },
-      { id: "AXLE-L", code: "AXLE-L", name: "長い車軸", description: "左右の車輪をつなぐ長い棒。", color: "#596877", cols: 1, rows: 1, height: "0px", vehicle: "axle-long" },
-      { id: "STEER", code: "STEER", name: "ハンドル", description: "車やロボットの向きを決める輪。", color: "#4f82ba", cols: 1, rows: 1, height: "0px", vehicle: "steering" },
-      { id: "PROP", code: "PROP", name: "プロペラ", description: "船・飛行機・風車につける羽。", color: "#5fae98", cols: 1, rows: 1, height: "0px", vehicle: "propeller" },
+      { id: "AXLE-S", code: "AXLE-S", name: "短い車軸", description: "四角い軸。小さい車輪をつなぐ。", color: "#596877", cols: 1, rows: 1, height: "0px", vehicle: "axle-short" },
+      { id: "AXLE-L", code: "AXLE-L", name: "長い車軸", description: "四角い軸。左右の車輪をつなぐ。", color: "#596877", cols: 1, rows: 1, height: "0px", vehicle: "axle-long" },
+      { id: "STEER", code: "STEER", name: "小型ハンドル", description: "中心のピンにつなぐ3本スポークのハンドル。", color: "#4f82ba", cols: 1, rows: 1, height: "0px", vehicle: "steering" },
+      { id: "PROP", code: "PROP", name: "3枚羽プロペラ", description: "中心のピンにつなぐ3枚羽。船・飛行機・風車に。", color: "#5fae98", cols: 1, rows: 1, height: "0px", vehicle: "propeller" },
       { id: "PIN-S", code: "PIN-S", name: "短い接続棒", description: "短くつなぐための部品。", color: "#8b7eae", cols: 2, rows: 1, height: "16px" },
       { id: "PIN-L", code: "PIN-L", name: "長い接続棒", description: "長くつなぐための部品。", color: "#8b7eae", cols: 5, rows: 1, height: "16px" },
       { id: "JOINT", code: "JOINT", name: "ジョイント", description: "向きを変えてつなぐ部品。", color: "#f0b83a", cols: 2, rows: 2, height: "16px" },
@@ -764,8 +764,9 @@
     }
     function addVehicleShape(part, target) {
       const kind = part.vehicle;
-      const rubber = new THREE.MeshStandardMaterial({ color: 0x394550, roughness: .72 });
-      const hub = new THREE.MeshStandardMaterial({ color: 0xc8d8d1, roughness: .4 });
+      const rubber = new THREE.MeshStandardMaterial({ color: 0x1d252c, roughness: .86 });
+      const rim = new THREE.MeshStandardMaterial({ color: 0xd6d8d2, roughness: .32, metalness: .08 });
+      const axleMaterial = new THREE.MeshStandardMaterial({ color: 0x394550, roughness: .5 });
       const colorMaterial = materialFor(hexColor(part.color));
       function addMesh(mesh) {
         mesh.castShadow = true;
@@ -774,53 +775,78 @@
       }
       if (kind && kind.startsWith("wheel")) {
         const radius = kind === "wheel-small" ? .34 : kind === "wheel-large" ? .68 : .5;
-        const spacing = radius * 1.85;
+        const spacing = radius * 1.9;
         [-spacing, spacing].forEach(x => {
-          const tire = new THREE.Mesh(new THREE.TorusGeometry(radius, radius * .30, 16, 36), rubber);
+          const tire = new THREE.Mesh(new THREE.TorusGeometry(radius, radius * .27, 18, 40), rubber);
           tire.rotation.y = Math.PI / 2;
           tire.position.set(x, radius + .06, 0);
           addMesh(tire);
-          const center = new THREE.Mesh(new THREE.CylinderGeometry(radius * .38, radius * .38, .12, 28), hub);
-          center.rotation.z = Math.PI / 2;
-          center.position.set(x, radius + .06, 0);
-          addMesh(center);
+          const wheelRim = new THREE.Mesh(new THREE.CylinderGeometry(radius * .46, radius * .46, radius * .36, 32), rim);
+          wheelRim.rotation.z = Math.PI / 2;
+          wheelRim.position.set(x, radius + .06, 0);
+          addMesh(wheelRim);
+          const hubCap = new THREE.Mesh(new THREE.CylinderGeometry(radius * .18, radius * .18, radius * .42, 20), axleMaterial);
+          hubCap.rotation.z = Math.PI / 2;
+          hubCap.position.set(x, radius + .06, 0);
+          addMesh(hubCap);
+          for (let spoke = 0; spoke < 5; spoke += 1) {
+            const bar = new THREE.Mesh(new THREE.BoxGeometry(radius * .50, radius * .08, radius * .075), rim);
+            bar.position.set(x, radius + .06, 0);
+            bar.rotation.x = spoke * (Math.PI * 2 / 5);
+            addMesh(bar);
+          }
         });
         return;
       }
       if (kind === "axle-short" || kind === "axle-long") {
         const length = kind === "axle-long" ? 3.4 : 1.8;
-        const axle = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, length, 24), colorMaterial);
-        axle.rotation.z = Math.PI / 2;
-        axle.position.y = .3;
-        addMesh(axle);
+        const shaft = new THREE.Mesh(new THREE.BoxGeometry(length, .15, .15), axleMaterial);
+        shaft.position.y = .3;
+        addMesh(shaft);
         [-length / 2, length / 2].forEach(x => {
-          const end = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .12, 24), colorMaterial);
-          end.rotation.z = Math.PI / 2;
-          end.position.set(x, .3, 0);
-          addMesh(end);
+          const stop = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .15, 20), axleMaterial);
+          stop.rotation.z = Math.PI / 2;
+          stop.position.set(x, .3, 0);
+          addMesh(stop);
         });
         return;
       }
       if (kind === "steering") {
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(.48, .09, 14, 36), colorMaterial);
-        ring.position.y = .74;
-        addMesh(ring);
-        const stem = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .66, 20), colorMaterial);
-        stem.position.y = .33;
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(.09, .12, .56, 20), colorMaterial);
+        stem.position.y = .28;
         addMesh(stem);
+        const hubMesh = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .12, 20), colorMaterial);
+        hubMesh.position.y = .62;
+        addMesh(hubMesh);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(.45, .065, 14, 36), colorMaterial);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = .67;
+        addMesh(ring);
+        for (let spoke = 0; spoke < 3; spoke += 1) {
+          const spokeMesh = new THREE.Mesh(new THREE.BoxGeometry(.68, .07, .10), colorMaterial);
+          spokeMesh.position.y = .67;
+          spokeMesh.rotation.y = spoke * (Math.PI * 2 / 3);
+          addMesh(spokeMesh);
+        }
         return;
       }
       if (kind === "propeller") {
-        const hubMesh = new THREE.Mesh(new THREE.SphereGeometry(.18, 24, 18), colorMaterial);
-        hubMesh.position.y = .45;
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .52, 20), colorMaterial);
+        stem.position.y = .28;
+        addMesh(stem);
+        const hubMesh = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .16, 24), colorMaterial);
+        hubMesh.position.y = .60;
         addMesh(hubMesh);
         for (let blade = 0; blade < 3; blade += 1) {
-          const wing = new THREE.Mesh(new THREE.BoxGeometry(.68, .07, .18), colorMaterial);
-          wing.position.y = .45;
-          wing.rotation.y = blade * (Math.PI * 2 / 3);
-          wing.position.x = Math.cos(wing.rotation.y) * .34;
-          wing.position.z = Math.sin(wing.rotation.y) * .34;
-          addMesh(wing);
+          const bladeMesh = new THREE.Mesh(new THREE.BoxGeometry(.58, .075, .20), colorMaterial);
+          const angle = blade * (Math.PI * 2 / 3);
+          bladeMesh.position.set(Math.cos(angle) * .31, .60, Math.sin(angle) * .31);
+          bladeMesh.rotation.y = -angle;
+          addMesh(bladeMesh);
+          const root = new THREE.Mesh(new THREE.BoxGeometry(.18, .09, .22), colorMaterial);
+          root.position.set(Math.cos(angle) * .14, .60, Math.sin(angle) * .14);
+          root.rotation.y = -angle;
+          addMesh(root);
         }
       }
     }
