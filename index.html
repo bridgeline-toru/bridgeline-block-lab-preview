@@ -303,6 +303,12 @@
       { id: "B23", code: "B23", name: "2×3 高さあり", description: "凸が2行×3列。車体や小さな壁。", color: "#e96d55", cols: 3, rows: 2, height: "24px" },
       { id: "B210", code: "B210", name: "2×10 高さあり", description: "凸が2行×10列。長い橋や骨組み。", color: "#e96d55", cols: 10, rows: 2, height: "24px" },
       { id: "B14H", code: "B14H", name: "1×4 横穴あり", description: "細長く、側面に穴がある部品。", color: "#4f82ba", cols: 4, rows: 1, height: "24px", sideHole: true },
+      { id: "B12H2", code: "B12H2", name: "1×2 高さ2", description: "ふつうの高さ2個分。細く高い柱や塔。", color: "#c85b49", cols: 2, rows: 1, height: "48px" },
+      { id: "B14H2", code: "B14H2", name: "1×4 高さ2", description: "ふつうの高さ2個分。高い壁や門。", color: "#c85b49", cols: 4, rows: 1, height: "48px" },
+      { id: "B22H2", code: "B22H2", name: "2×2 高さ2", description: "ふつうの高さ2個分。高い柱や塔。", color: "#c85b49", cols: 2, rows: 2, height: "48px" },
+      { id: "B24H2", code: "B24H2", name: "2×4 高さ2", description: "ふつうの高さ2個分。高い壁や車体。", color: "#c85b49", cols: 4, rows: 2, height: "48px" },
+      { id: "B26H2", code: "B26H2", name: "2×6 高さ2", description: "ふつうの高さ2個分。高い橋や建物。", color: "#c85b49", cols: 6, rows: 2, height: "48px" },
+
       { id: "P11", code: "P11", name: "1×1 薄い板", description: "凸が1個。小さな飾りや高さ調整。", color: "#3e9d87", cols: 1, rows: 1, height: "10px" },
       { id: "P12", code: "P12", name: "1×2 薄い板", description: "凸が1行×2列。細かなつなぎ。", color: "#3e9d87", cols: 2, rows: 1, height: "10px" },
       { id: "P14", code: "P14", name: "1×4 薄い板", description: "凸が1行×4列。細い屋根やふち。", color: "#3e9d87", cols: 4, rows: 1, height: "10px" },
@@ -680,6 +686,12 @@
     let activePart = null;
 
     function hexColor(value) { return Number.parseInt(value.replace("#", ""), 16); }
+    function modelHeightFor(part) {
+      const sourceHeight = Number.parseInt(part.height, 10);
+      if (sourceHeight >= 48) return 1.24;
+      if (sourceHeight > 12) return .62;
+      return .21;
+    }
     function materialFor(color) { return new THREE.MeshStandardMaterial({ color, roughness: .48, metalness: .04 }); }
     function addEdges(mesh) {
       const edges = new THREE.LineSegments(
@@ -760,7 +772,7 @@
         const unit = .74;
         const width = part.cols * unit;
         const depth = part.rows * unit;
-        const height = Number.parseInt(part.height, 10) > 12 ? .92 : .28;
+        const height = modelHeightFor(part);
         const material = materialFor(hexColor(part.color));
         const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
         body.position.y = height / 2;
@@ -785,8 +797,12 @@
       document.querySelector("#viewer-3d-code").textContent = part.code;
       document.querySelector("#viewer-3d-title").textContent = part.name;
       document.querySelector("#viewer-3d-description").textContent = part.description;
-      const standardHeight = Number.parseInt(part.height, 10) > 12;
-      const heightText = standardHeight ? "高さあり (薄い板3枚分)" : "薄い板 (高さありの1/3)";
+      const sourceHeight = Number.parseInt(part.height, 10);
+      const heightText = sourceHeight >= 48
+        ? "高さ2 (薄い板6枚分)"
+        : sourceHeight > 12
+          ? "高さあり (薄い板3枚分)"
+          : "薄い板 (高さありの1/3)";
       document.querySelector("#viewer-3d-spec").innerHTML = [
         ["上面の凸", part.rows + "行 × " + part.cols + "列"],
         ["高さ", heightText],
@@ -887,7 +903,7 @@
       const unit = .74;
       const width = part.cols * unit;
       const depth = part.rows * unit;
-      const height = Number.parseInt(part.height, 10) > 12 ? .92 : .28;
+      const height = modelHeightFor(part);
       const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
       body.position.y = height / 2;
       thumbnailModel.add(body);
