@@ -332,7 +332,13 @@
       { id: "P28", code: "P28", name: "2×8 薄い板", description: "高さが低い。長い土台。", color: "#3e9d87", cols: 8, rows: 2, height: "10px" },
       { id: "P44", code: "P44", name: "4×4 薄い板", description: "凸が4行×4列。広い土台。", color: "#3e9d87", cols: 4, rows: 4, height: "10px" },
       { id: "BASE", code: "BASE", name: "大きな土台", description: "作品のいちばん下に置く土台。", color: "#f0b83a", cols: 8, rows: 4, height: "8px" },
-      { id: "WHEEL", code: "WHEEL", name: "車輪セット", description: "同じ大きさの車輪2個で1セット。", color: "#353c47", cols: 2, rows: 1, height: "20px" },
+      { id: "WHEEL", code: "WHEEL", name: "中くらい車輪セット", description: "ふつうの大きさの車輪2個。", color: "#353c47", cols: 1, rows: 1, height: "0px", vehicle: "wheel-medium" },
+      { id: "WHEEL-S", code: "WHEEL-S", name: "小さい車輪セット", description: "小回りがきく小さな車輪2個。", color: "#353c47", cols: 1, rows: 1, height: "0px", vehicle: "wheel-small" },
+      { id: "WHEEL-L", code: "WHEEL-L", name: "大きい車輪セット", description: "大きく転がる車輪2個。", color: "#353c47", cols: 1, rows: 1, height: "0px", vehicle: "wheel-large" },
+      { id: "AXLE-S", code: "AXLE-S", name: "短い車軸", description: "小さい車輪をつなぐ短い棒。", color: "#596877", cols: 1, rows: 1, height: "0px", vehicle: "axle-short" },
+      { id: "AXLE-L", code: "AXLE-L", name: "長い車軸", description: "左右の車輪をつなぐ長い棒。", color: "#596877", cols: 1, rows: 1, height: "0px", vehicle: "axle-long" },
+      { id: "STEER", code: "STEER", name: "ハンドル", description: "車やロボットの向きを決める輪。", color: "#4f82ba", cols: 1, rows: 1, height: "0px", vehicle: "steering" },
+      { id: "PROP", code: "PROP", name: "プロペラ", description: "船・飛行機・風車につける羽。", color: "#5fae98", cols: 1, rows: 1, height: "0px", vehicle: "propeller" },
       { id: "PIN-S", code: "PIN-S", name: "短い接続棒", description: "短くつなぐための部品。", color: "#8b7eae", cols: 2, rows: 1, height: "16px" },
       { id: "PIN-L", code: "PIN-L", name: "長い接続棒", description: "長くつなぐための部品。", color: "#8b7eae", cols: 5, rows: 1, height: "16px" },
       { id: "JOINT", code: "JOINT", name: "ジョイント", description: "向きを変えてつなぐ部品。", color: "#f0b83a", cols: 2, rows: 2, height: "16px" },
@@ -756,19 +762,67 @@
       inner.position.set(width / 2 + .02, height * .54, 0);
       model.add(inner);
     }
-    function addWheelSet() {
+    function addVehicleShape(part, target) {
+      const kind = part.vehicle;
       const rubber = new THREE.MeshStandardMaterial({ color: 0x394550, roughness: .72 });
       const hub = new THREE.MeshStandardMaterial({ color: 0xc8d8d1, roughness: .4 });
-      [-.68, .68].forEach(x => {
-        const tire = new THREE.Mesh(new THREE.TorusGeometry(.5, .16, 16, 36), rubber);
-        tire.rotation.y = Math.PI / 2;
-        tire.position.set(x, .56, 0);
-        model.add(tire);
-        const center = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .1, 28), hub);
-        center.rotation.z = Math.PI / 2;
-        center.position.set(x, .56, 0);
-        model.add(center);
-      });
+      const colorMaterial = materialFor(hexColor(part.color));
+      function addMesh(mesh) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        target.add(mesh);
+      }
+      if (kind && kind.startsWith("wheel")) {
+        const radius = kind === "wheel-small" ? .34 : kind === "wheel-large" ? .68 : .5;
+        const spacing = radius * 1.85;
+        [-spacing, spacing].forEach(x => {
+          const tire = new THREE.Mesh(new THREE.TorusGeometry(radius, radius * .30, 16, 36), rubber);
+          tire.rotation.y = Math.PI / 2;
+          tire.position.set(x, radius + .06, 0);
+          addMesh(tire);
+          const center = new THREE.Mesh(new THREE.CylinderGeometry(radius * .38, radius * .38, .12, 28), hub);
+          center.rotation.z = Math.PI / 2;
+          center.position.set(x, radius + .06, 0);
+          addMesh(center);
+        });
+        return;
+      }
+      if (kind === "axle-short" || kind === "axle-long") {
+        const length = kind === "axle-long" ? 3.4 : 1.8;
+        const axle = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, length, 24), colorMaterial);
+        axle.rotation.z = Math.PI / 2;
+        axle.position.y = .3;
+        addMesh(axle);
+        [-length / 2, length / 2].forEach(x => {
+          const end = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .12, 24), colorMaterial);
+          end.rotation.z = Math.PI / 2;
+          end.position.set(x, .3, 0);
+          addMesh(end);
+        });
+        return;
+      }
+      if (kind === "steering") {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(.48, .09, 14, 36), colorMaterial);
+        ring.position.y = .74;
+        addMesh(ring);
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .66, 20), colorMaterial);
+        stem.position.y = .33;
+        addMesh(stem);
+        return;
+      }
+      if (kind === "propeller") {
+        const hubMesh = new THREE.Mesh(new THREE.SphereGeometry(.18, 24, 18), colorMaterial);
+        hubMesh.position.y = .45;
+        addMesh(hubMesh);
+        for (let blade = 0; blade < 3; blade += 1) {
+          const wing = new THREE.Mesh(new THREE.BoxGeometry(.68, .07, .18), colorMaterial);
+          wing.position.y = .45;
+          wing.rotation.y = blade * (Math.PI * 2 / 3);
+          wing.position.x = Math.cos(wing.rotation.y) * .34;
+          wing.position.z = Math.sin(wing.rotation.y) * .34;
+          addMesh(wing);
+        }
+      }
     }
     function addPin(part) {
       const material = materialFor(hexColor(part.color));
@@ -885,8 +939,8 @@
     function buildPart(part) {
       activePart = part;
       model.clear();
-      if (part.id === "WHEEL") {
-        addWheelSet();
+      if (part.vehicle) {
+        addVehicleShape(part, model);
       } else if (part.id === "PIN-S" || part.id === "PIN-L") {
         addPin(part);
       } else if (part.id === "JOINT") {
@@ -924,15 +978,17 @@
       document.querySelector("#viewer-3d-title").textContent = part.name;
       document.querySelector("#viewer-3d-description").textContent = part.description;
       const sourceHeight = Number.parseInt(part.height, 10);
-      const heightText = sourceHeight >= 48
-        ? "高さ2 (薄い板6枚分・中央に点線)"
-        : sourceHeight > 12
-          ? "高さあり (薄い板3枚分)"
-          : "薄い板 (高さありの1/3)";
+      const heightText = part.vehicle
+        ? "専用形状"
+        : sourceHeight >= 48
+          ? "高さ2 (薄い板6枚分・中央に点線)"
+          : sourceHeight > 12
+            ? "高さあり (薄い板3枚分)"
+            : "薄い板 (高さありの1/3)";
       document.querySelector("#viewer-3d-spec").innerHTML = [
-        ["上面の凸", part.rows + "行 × " + part.cols + "列"],
+        ["上面の凸", part.vehicle ? "凸なし / 専用部品" : part.rows + "行 × " + part.cols + "列"],
         ["高さ", heightText],
-        ["特徴", part.shape === "slope" ? "前から後ろへ上がる斜面" : part.shape === "inverse-slope" ? "前から後ろへ下がる斜面" : part.shape === "roof-ridge" ? "両側が下がる屋根" : part.shape === "roof-corner" ? "四方へ下がる角屋根" : part.sideHole ? "側面に穴あり" : (part.id === "WHEEL" ? "車輪2個で1セット" : part.id === "PIN-S" || part.id === "PIN-L" ? "接続棒" : "横穴なし")]
+        ["特徴", part.vehicle === "wheel-small" ? "小さい車輪2個" : part.vehicle === "wheel-medium" ? "中くらい車輪2個" : part.vehicle === "wheel-large" ? "大きい車輪2個" : part.vehicle === "axle-short" ? "短い車軸" : part.vehicle === "axle-long" ? "長い車軸" : part.vehicle === "steering" ? "回すための輪" : part.vehicle === "propeller" ? "3枚羽" : part.shape === "slope" ? "前から後ろへ上がる斜面" : part.shape === "inverse-slope" ? "前から後ろへ下がる斜面" : part.shape === "roof-ridge" ? "両側が下がる屋根" : part.shape === "roof-corner" ? "四方へ下がる角屋根" : part.sideHole ? "側面に穴あり" : (part.id === "PIN-S" || part.id === "PIN-L" ? "接続棒" : "横穴なし")]
       ].map(([name, value]) => "<li><span>" + name + "</span><strong>" + value + "</strong></li>").join("");
     }
     function resetView() {
@@ -997,16 +1053,8 @@
     function addThumbnailPart(part) {
       thumbnailModel.clear();
       const material = materialFor(hexColor(part.color));
-      if (part.id === "WHEEL") {
-        [-.68, .68].forEach(x => {
-          const tire = new THREE.Mesh(
-            new THREE.TorusGeometry(.5, .16, 16, 36),
-            new THREE.MeshStandardMaterial({ color: 0x394550, roughness: .72 })
-          );
-          tire.rotation.y = Math.PI / 2;
-          tire.position.set(x, .56, 0);
-          thumbnailModel.add(tire);
-        });
+      if (part.vehicle) {
+        addVehicleShape(part, thumbnailModel);
         return;
       }
       if (part.id === "PIN-S" || part.id === "PIN-L") {
