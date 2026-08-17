@@ -305,6 +305,9 @@
       { id: "B14H", code: "B14H", name: "1×4 横穴あり", description: "細長く、側面に穴がある部品。", color: "#4f82ba", cols: 4, rows: 1, height: "24px", sideHole: true },
       { id: "B12H2", code: "B12H2", name: "1×2 高さ2", description: "ふつうの高さ2個分。細く高い柱や塔。", color: "#c85b49", cols: 2, rows: 1, height: "48px" },
       { id: "B14H2", code: "B14H2", name: "1×4 高さ2", description: "ふつうの高さ2個分。高い壁や門。", color: "#c85b49", cols: 4, rows: 1, height: "48px" },
+      { id: "S12", code: "S12", name: "1×2 ななめ", description: "幅1、長さ2の短い斜面。小さな屋根や段差。", color: "#e3a640", cols: 2, rows: 1, height: "24px", shape: "slope" },
+      { id: "S13", code: "S13", name: "1×3 ななめ", description: "幅1、長さ3のなだらかな斜面。細い屋根や車の前。", color: "#e3a640", cols: 3, rows: 1, height: "24px", shape: "slope" },
+      { id: "S14", code: "S14", name: "1×4 ななめ", description: "幅1、長さ4の長くなだらかな斜面。細い屋根や坂。", color: "#e3a640", cols: 4, rows: 1, height: "24px", shape: "slope" },
       { id: "S22", code: "S22", name: "2×2 ななめ", description: "前が低く、後ろが高い斜面。屋根や車の前。", color: "#e3a640", cols: 2, rows: 2, height: "24px", shape: "slope" },
       { id: "S23", code: "S23", name: "2×3 ななめ", description: "少し長い斜面。車の前や屋根。", color: "#e3a640", cols: 3, rows: 2, height: "24px", shape: "slope" },
       { id: "S24", code: "S24", name: "2×4 ななめ", description: "長い斜面。車の前や大きな屋根。", color: "#e3a640", cols: 4, rows: 2, height: "24px", shape: "slope" },
@@ -810,23 +813,31 @@
     }
     function createSlopeGeometry(width, depth, height, inverse) {
       const low = .08;
-      const shelfDepth = Math.min(.74, depth * .5);
+      const shelfWidth = Math.min(.74, width * .5);
+      const shape = new THREE.Shape();
       if (inverse) {
-        return createProfilePrism([
-          [-depth / 2, height],
-          [-depth / 2, 0],
-          [depth / 2, 0],
-          [depth / 2, low],
-          [-depth / 2 + shelfDepth, height]
-        ], width);
+        shape.moveTo(-width / 2, height);
+        shape.lineTo(-width / 2, 0);
+        shape.lineTo(width / 2, 0);
+        shape.lineTo(width / 2, low);
+        shape.lineTo(-width / 2 + shelfWidth, height);
+      } else {
+        shape.moveTo(-width / 2, low);
+        shape.lineTo(-width / 2, 0);
+        shape.lineTo(width / 2, 0);
+        shape.lineTo(width / 2, height);
+        shape.lineTo(width / 2 - shelfWidth, height);
       }
-      return createProfilePrism([
-        [-depth / 2, low],
-        [-depth / 2, 0],
-        [depth / 2, 0],
-        [depth / 2, height],
-        [depth / 2 - shelfDepth, height]
-      ], width);
+      shape.closePath();
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth,
+        steps: 1,
+        bevelEnabled: false,
+        curveSegments: 1
+      });
+      geometry.translate(0, 0, -depth / 2);
+      geometry.computeVertexNormals();
+      return geometry;
     }
     function createRoofRidgeGeometry(width, depth, height) {
       return createProfilePrism([
@@ -845,13 +856,13 @@
       if (part.shape === "slope" || part.shape === "inverse-slope") {
         mesh = new THREE.Mesh(createSlopeGeometry(width, depth, height, part.shape === "inverse-slope"), material);
         target.add(mesh);
-        const shelfDepth = Math.min(.74, depth * .5);
-        const studZ = part.shape === "inverse-slope"
-          ? depth / 2 - shelfDepth / 2
-          : -depth / 2 + shelfDepth / 2;
-        for (let col = 0; col < part.cols; col += 1) {
+        const shelfWidth = Math.min(.74, width * .5);
+        const studX = part.shape === "inverse-slope"
+          ? -width / 2 + shelfWidth / 2
+          : width / 2 - shelfWidth / 2;
+        for (let row = 0; row < part.rows; row += 1) {
           const stud = new THREE.Mesh(new THREE.CylinderGeometry(.20, .20, .10, 28), material);
-          stud.position.set(-width / 2 + unit * (col + .5), height + .05, studZ);
+          stud.position.set(studX, height + .05, -depth / 2 + unit * (row + .5));
           target.add(stud);
         }
       } else if (part.shape === "roof-ridge") {
