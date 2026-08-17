@@ -895,13 +895,19 @@
       document.querySelectorAll(".part-3d-thumbnail").forEach(canvasElement => {
         const part = window.getBlockPart(canvasElement.dataset.partId);
         if (!part) return;
-        addThumbnailPart(part);
-        const size = Math.max(part.cols || 3, part.rows || 2);
-        thumbnailCamera.position.set(size * 1.55, size * 1.2, size * 1.82);
-        thumbnailCamera.lookAt(0, .42, 0);
-        thumbnailRenderer.render(thumbnailScene, thumbnailCamera);
         const context = canvasElement.getContext("2d");
         context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        if (!part.cols || !part.rows) {
+          context.fillStyle = "#5f7170";
+          context.font = "bold 76px -apple-system, BlinkMacSystemFont, sans-serif";
+          context.fillText("?", 145, 120);
+          return;
+        }
+        addThumbnailPart(part);
+        const size = Math.max(part.cols || 3, part.rows || 2);
+        thumbnailCamera.position.set(size * .65 + 2, size * .48 + 1.5, size * .75 + 2);
+        thumbnailCamera.lookAt(0, .42, 0);
+        thumbnailRenderer.render(thumbnailScene, thumbnailCamera);
         context.drawImage(thumbnailRenderer.domElement, 0, 0, canvasElement.width, canvasElement.height);
       });
     }
