@@ -703,27 +703,26 @@
       model.add(edges);
     }
     function addDoubleHeightDivider(width, depth, height) {
-      const dividerMaterial = new THREE.LineDashedMaterial({
-        color: 0x166c5a,
-        dashSize: .12,
-        gapSize: .08,
-        linewidth: 1
-      });
-      function addDashedLine(points) {
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geometry, dividerMaterial);
-        line.computeLineDistances();
-        model.add(line);
-      }
+      const dividerMaterial = new THREE.MeshBasicMaterial({ color: 0x0d806e });
       const y = height / 2;
-      addDashedLine([
-        new THREE.Vector3(-width / 2, y, depth / 2 + .014),
-        new THREE.Vector3(width / 2, y, depth / 2 + .014)
-      ]);
-      addDashedLine([
-        new THREE.Vector3(width / 2 + .014, y, -depth / 2),
-        new THREE.Vector3(width / 2 + .014, y, depth / 2)
-      ]);
+      const dashLength = .16;
+      const gap = .10;
+      function addFrontDashes() {
+        for (let x = -width / 2 + dashLength / 2; x < width / 2; x += dashLength + gap) {
+          const dash = new THREE.Mesh(new THREE.BoxGeometry(dashLength, .032, .034), dividerMaterial);
+          dash.position.set(Math.min(x, width / 2 - dashLength / 2), y, depth / 2 + .026);
+          model.add(dash);
+        }
+      }
+      function addSideDashes() {
+        for (let z = -depth / 2 + dashLength / 2; z < depth / 2; z += dashLength + gap) {
+          const dash = new THREE.Mesh(new THREE.BoxGeometry(.034, .032, dashLength), dividerMaterial);
+          dash.position.set(width / 2 + .026, y, Math.min(z, depth / 2 - dashLength / 2));
+          model.add(dash);
+        }
+      }
+      addFrontDashes();
+      addSideDashes();
     }
     function addStud(material, x, y, z) {
       const stud = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .12, 32), material);
