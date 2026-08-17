@@ -56,8 +56,10 @@
     .hint { margin-top: 16px; padding: 10px 12px; border-left: 4px solid var(--yellow); background: #fff8dc; font-size: 13px; line-height: 1.6; }
 
     .parts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
-    .part-card { min-height: 196px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
-    .part-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; min-height: 72px; }
+    .part-card { min-height: 218px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .part-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; min-height: 92px; }
+    .part-sketch { width: 178px; height: 88px; max-width: 70%; display: block; margin: -2px 0 0 2px; }
+    .sketch-caption { margin: 0 0 2px; color: #62716d; font-size: 10px; letter-spacing: 0; }
     .part-model { position: relative; width: calc(var(--cols) * 13px + 10px); min-width: 42px; height: 68px; margin: 2px 6px 0 10px; }
     .block-top { position: absolute; z-index: 3; top: 6px; left: 0; display: grid; grid-template-columns: repeat(var(--cols), 11px); grid-template-rows: repeat(var(--rows), 11px); gap: 2px; padding: 5px; background: var(--part-color); border: 1px solid rgba(0,0,0,.18); transform: skewX(-18deg); transform-origin: left bottom; box-shadow: inset 0 3px rgba(255,255,255,.28); }
     .block-stud { display: block; border-radius: 50%; background: rgba(255,255,255,.24); border: 1px solid rgba(0,0,0,.14); box-shadow: inset 0 -2px rgba(0,0,0,.12); }
@@ -143,7 +145,7 @@
           <p>おうちの余りブロックから、新しい作品をつくろう</p>
         </div>
       </div>
-      <div class="status">v0.2 / 標準サイズのみ / データは保存しません</div>
+      <div class="status">v0.3 / 手描き風立体図 / データは保存しません</div>
     </header>
 
     <nav class="steps" aria-label="作業の進み具合">
@@ -157,7 +159,7 @@
         <section class="panel">
           <div class="panel-inner">
             <h2>持ってきたブロックを数えよう</h2>
-            <p class="lead">上の凸の数、ブロックの高さ、横穴や接続棒の長さを、実物と立体図で見比べます。迷った部品は「その他」で大丈夫。</p>
+            <p class="lead">実物と、手描き風の立体図を見比べます。凸の数、ブロックの高さ、横穴や接続棒の長さを確認しよう。迷った部品は「その他」で大丈夫。</p>
             <div class="hint">今回は標準サイズだけを数えます。大型幼児向け・小型・磁石・電動・破損部品は混ぜません。紙コップ一杯分を、少しずつ見ていこう。</div>
             <div class="parts-grid" id="parts-grid"></div>
           </div>
@@ -289,12 +291,8 @@
       document.getElementById("parts-grid").innerHTML = parts.map(part => `
         <article class="part-card" style="--part-color:${part.color}">
           <div class="part-head">
-            <div class="part-model" style="--part-color:${part.color}; --cols:${part.cols}; --rows:${part.rows}; --block-height:${part.height}">
-              <div class="block-side"></div><div class="block-front"></div>
-              <div class="block-top">${Array.from({ length: part.cols * part.rows }, () => '<span class="block-stud"></span>').join("")}</div>
-              ${part.sideHole ? '<span class="side-hole"></span>' : ""}
-            </div>
-            <span class="count-label">見つけた数</span>
+            <canvas class="part-sketch" width="356" height="176" data-part-id="${part.id}" aria-label="${part.name}の手描き風立体図"></canvas>
+            <div><p class="sketch-caption">実物と見くらべよう</p><span class="count-label">見つけた数</span></div>
           </div>
           <h3><span class="part-code">${part.code}</span>${part.name}</h3>
           <p>${part.description}</p>
@@ -305,6 +303,137 @@
           </div>
         </article>
       `).join("");
+      requestAnimationFrame(drawAllPartSketches);
+    }
+
+    function point(x, y) { return { x, y }; }
+    function add(a, b) { return point(a.x + b.x, a.y + b.y); }
+    function scale(v, n) { return point(v.x * n, v.y * n); }
+
+    function sketchLine(ctx, a, b, stroke = "#243942", width = 2) {
+      for (let pass = 0; pass < 2; pass += 1) {
+        const j = pass === 0 ? 0 : .85;
+        ctx.beginPath();
+        ctx.moveTo(a.x + j, a.y - j);
+        ctx.lineTo(b.x - j * .7, b.y + j * .6);
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = pass === 0 ? width : Math.max(.7, width * .38);
+        ctx.globalAlpha = pass === 0 ? .88 : .28;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function sketchPolygon(ctx, vertices, fill, stroke = "#243942") {
+      ctx.beginPath();
+      ctx.moveTo(vertices[0].x, vertices[0].y);
+      vertices.slice(1).forEach(v => ctx.lineTo(v.x, v.y));
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.globalAlpha = .78;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      vertices.forEach((v, index) => sketchLine(ctx, v, vertices[(index + 1) % vertices.length], stroke, 2));
+    }
+
+    function drawCircleSketch(ctx, x, y, radius, fill, stroke = "#243942") {
+      ctx.beginPath();
+      ctx.ellipse(x, y, radius, radius * .72, -.28, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.globalAlpha = .8;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(x + .8, y + .5, radius * .42, radius * .3, -.28, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(36,57,66,.55)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    function drawSpecialSketch(ctx, part) {
+      const label = part.id;
+      if (label === "WHEEL") {
+        drawCircleSketch(ctx, 104, 92, 32, "#4b5661");
+        drawCircleSketch(ctx, 162, 92, 32, "#4b5661");
+        sketchLine(ctx, point(72, 92), point(194, 92), "#243942", 2);
+        return true;
+      }
+      if (label === "PIN-S" || label === "PIN-L") {
+        const length = label === "PIN-L" ? 150 : 72;
+        sketchPolygon(ctx, [point(103, 75), point(103 + length, 53), point(103 + length, 78), point(103, 100)], "#9a8abb");
+        drawCircleSketch(ctx, 103, 87, 10, "#9a8abb");
+        drawCircleSketch(ctx, 103 + length, 66, 10, "#9a8abb");
+        return true;
+      }
+      if (label === "JOINT") {
+        drawCircleSketch(ctx, 110, 82, 26, "#e8bd4a");
+        drawCircleSketch(ctx, 163, 63, 22, "#e8bd4a");
+        sketchLine(ctx, point(128, 71), point(146, 65), "#243942", 3);
+        return true;
+      }
+      if (label === "OTHER") {
+        ctx.font = "bold 72px Georgia, serif";
+        ctx.fillStyle = "#6e7a80";
+        ctx.fillText("?", 115, 110);
+        return true;
+      }
+      return false;
+    }
+
+    function drawPartSketch(canvas, part) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (drawSpecialSketch(ctx, part)) return;
+
+      const cols = part.cols;
+      const rows = part.rows;
+      const maxSpan = cols + rows;
+      const unit = Math.min(19, 182 / Math.max(maxSpan, 5));
+      const u = point(unit, -unit * .38);
+      const v = point(-unit, -unit * .38);
+      const depth = Number.parseInt(part.height, 10) > 12 ? 38 : 16;
+      const center = point(176, Number.parseInt(part.height, 10) > 12 ? 80 : 92);
+      const topA = add(add(center, scale(u, -cols / 2)), scale(v, -rows / 2));
+      const topB = add(topA, scale(u, cols));
+      const topC = add(topB, scale(v, rows));
+      const topD = add(topA, scale(v, rows));
+      const color = part.color;
+
+      sketchPolygon(ctx, [topD, topC, point(topC.x, topC.y + depth), point(topD.x, topD.y + depth)], color);
+      sketchPolygon(ctx, [topB, topC, point(topC.x, topC.y + depth), point(topB.x, topB.y + depth)], color);
+      sketchPolygon(ctx, [topA, topB, topC, topD], color);
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const stud = add(add(topA, scale(u, col + .5)), scale(v, row + .5));
+          drawCircleSketch(ctx, stud.x, stud.y, Math.max(3.6, unit * .22), "rgba(255,255,255,.4)", "rgba(36,57,66,.48)");
+        }
+      }
+
+      if (part.sideHole) {
+        const hole = point(topC.x - 7, topC.y + depth * .48);
+        drawCircleSketch(ctx, hole.x, hole.y, 8, "#22333b", "#243942");
+      }
+
+      ctx.fillStyle = "#53635f";
+      ctx.font = "600 17px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText(part.code, 12, 158);
+      ctx.font = "14px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillStyle = "#687772";
+      ctx.fillText(part.sideHole ? "側面の穴を確認" : (Number.parseInt(part.height, 10) > 12 ? "高さあり" : "薄い板"), 62, 158);
+    }
+
+    function drawAllPartSketches() {
+      document.querySelectorAll(".part-sketch").forEach(canvas => {
+        const part = parts.find(item => item.id === canvas.dataset.partId);
+        if (part) drawPartSketch(canvas, part);
+      });
     }
 
     function renderInventory() {
