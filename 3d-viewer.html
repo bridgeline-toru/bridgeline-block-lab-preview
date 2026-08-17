@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ブロック発明ラボ - 3D部品ビューアー</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    :root {
+      --ink: #172630;
+      --muted: #65737b;
+      --paper: #f4f6f3;
+      --line: #d8e0da;
+      --green: #087b6b;
+      --green-soft: #dff2ea;
+      --orange: #e7744d;
+      --blue: #356ea8;
+      --yellow: #e7b93e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+    button { font: inherit; }
+    .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:20px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .mark { display:grid; place-items:center; width:44px; height:44px; border-radius:8px; color:white; background:var(--green); font-weight:800; }
+    h1 { margin:0; font-size:22px; letter-spacing:0; }
+    .sub { margin:4px 0 0; color:var(--muted); font-size:13px; }
+    .tag { padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--muted); font-size:12px; }
+    .layout { display:grid; grid-template-columns:280px minmax(0, 1fr) 270px; gap:18px; }
+    .side { background:#fff; border:1px solid var(--line); border-radius:8px; padding:18px; }
+    .side h2 { margin:0 0 8px; font-size:16px; }
+    .side p { margin:0 0 14px; color:var(--muted); font-size:13px; line-height:1.65; }
+    .part-list { display:grid; gap:8px; }
+    .part-btn { width:100%; min-height:68px; padding:10px 12px; text-align:left; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; }
+    .part-btn:hover { border-color:var(--green); }
+    .part-btn.active { border-color:var(--green); background:var(--green-soft); }
+    .part-btn strong { display:block; font-size:14px; }
+    .part-btn span { display:block; margin-top:3px; color:var(--muted); font-size:12px; }
+    .viewer { position:relative; min-height:610px; overflow:hidden; background:#e8f0ed; }
+    #viewer { position:absolute; inset:0; width:100%; height:100%; }
+    .viewer-top { position:absolute; z-index:2; top:16px; left:16px; pointer-events:none; }
+    .viewer-top span { display:inline-block; padding:7px 9px; background:rgba(255,255,255,.9); border:1px solid rgba(215,224,218,.9); color:#52645e; font-size:12px; }
+    .viewer-bottom { position:absolute; z-index:2; left:16px; bottom:16px; display:flex; gap:8px; }
+    .viewer-bottom button { min-height:38px; padding:0 12px; border:1px solid var(--line); border-radius:5px; background:rgba(255,255,255,.92); color:var(--ink); cursor:pointer; font-weight:700; font-size:13px; }
+    .viewer-bottom button:hover { border-color:var(--green); color:var(--green); }
+    .detail { display:flex; flex-direction:column; gap:14px; }
+    .detail-card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:17px; }
+    .detail-card h2 { margin:0; font-size:18px; }
+    .code { display:inline-block; margin-bottom:7px; padding:3px 5px; border-radius:3px; background:#edf1ee; color:#4e6259; font-weight:800; font-size:11px; }
+    .detail-card p { margin:9px 0 0; color:var(--muted); line-height:1.65; font-size:13px; }
+    .spec { margin:13px 0 0; padding:0; list-style:none; }
+    .spec li { display:flex; justify-content:space-between; gap:8px; padding:9px 0; border-top:1px solid #edf0ed; font-size:13px; }
+    .spec span { color:var(--muted); }
+    .spec strong { text-align:right; }
+    .note { border-left:4px solid var(--yellow); background:#fff9df; padding:12px; color:#6a5922; font-size:12px; line-height:1.6; }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns:220px minmax(0,1fr); }
+      .detail { grid-column:1 / -1; display:grid; grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width: 680px) {
+      .app { padding:14px; }
+      .topbar { align-items:flex-start; }
+      .tag { display:none; }
+      .layout { grid-template-columns:1fr; }
+      .side { padding:14px; }
+      .part-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .part-btn { min-height:76px; }
+      .viewer { min-height:460px; }
+      .detail { grid-column:auto; grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">BL</div>
+        <div>
+          <h1>ブロック発明ラボ 3D部品ビューアー</h1>
+          <p class="sub">初期部品カタログの立体表示テスト</p>
+        </div>
+      </div>
+      <div class="tag">試作版 / 標準サイズの独自モデル</div>
+    </header>
+
+    <div class="layout">
+      <aside class="side">
+        <h2>部品を選ぶ</h2>
+        <p>最初は、形の違いを見分けやすい代表5種類だけを検証します。</p>
+        <div class="part-list" id="part-list"></div>
+      </aside>
+
+      <section class="viewer" aria-label="3D部品表示">
+        <canvas id="viewer"></canvas>
+        <div class="viewer-top"><span id="viewer-label">B24 / 2×4 高さあり</span></div>
+        <div class="viewer-bottom">
+          <button id="reset-view" type="button">見やすい角度に戻す</button>
+          <button id="toggle-spin" type="button">ゆっくり回す: オフ</button>
+        </div>
+      </section>
+
+      <aside class="detail">
+        <section class="detail-card">
+          <span class="code" id="part-code">B24</span>
+          <h2 id="part-title">2×4 高さあり</h2>
+          <p id="part-description">凸が2行×4列。初期レシピの基本になる高さのある部品です。</p>
+          <ul class="spec" id="part-spec"></ul>
+        </section>
+        <div class="note">これは特定ブランドの公式データではありません。ワークショップ用に、凸数・高さ・穴の位置を見比べるための独自モデルです。</div>
+      </aside>
+    </div>
+  </main>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    const partCatalog = [
+      {
+        id: "B22", name: "2×2 高さあり", description: "凸が2行×2列。小さな柱や壁に使える、基本の高さのある部品です。",
+        cols: 2, rows: 2, height: 0.92, color: 0xe7744d, feature: "横穴なし"
+      },
+      {
+        id: "B24", name: "2×4 高さあり", description: "凸が2行×4列。車体や壁の中心になる、初期レシピの基本部品です。",
+        cols: 4, rows: 2, height: 0.92, color: 0xe7744d, feature: "横穴なし"
+      },
+      {
+        id: "B26", name: "2×6 高さあり", description: "凸が2行×6列。2×4より長く、橋や長い壁に使える部品です。",
+        cols: 6, rows: 2, height: 0.92, color: 0xe7744d, feature: "横穴なし"
+      },
+      {
+        id: "B14H", name: "1×4 横穴あり", description: "凸が1行×4列。側面の穴を使って、接続棒や動く仕組みの入口になります。",
+        cols: 4, rows: 1, height: 0.92, color: 0x356ea8, feature: "側面に穴あり", sideHole: true
+      },
+      {
+        id: "P24", name: "2×4 薄い板", description: "凸が2行×4列。高さが低いので、屋根や土台に使いやすい薄い部品です。",
+        cols: 4, rows: 2, height: 0.28, color: 0x087b6b, feature: "薄い板"
+      }
+    ];
+
+    const canvas = document.querySelector("#viewer");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xe8f0ed);
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+    camera.position.set(6.5, 5.3, 7.6);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.minDistance = 4.4;
+    controls.maxDistance = 12;
+    controls.maxPolarAngle = Math.PI * .47;
+    controls.target.set(0, .55, 0);
+
+    const hemi = new THREE.HemisphereLight(0xfafdfc, 0x6c827a, 2.2);
+    scene.add(hemi);
+    const key = new THREE.DirectionalLight(0xffffff, 2.4);
+    key.position.set(5, 7, 4);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xa9d4c8, .65);
+    fill.position.set(-5, 3, -3);
+    scene.add(fill);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.MeshStandardMaterial({ color: 0xdbe8e1, roughness: 1 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -.04;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(12, 12, 0xa4b8ae, 0xc7d7d0);
+    grid.position.y = 0;
+    scene.add(grid);
+
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    let activePart = partCatalog[1];
+    let autoSpin = false;
+
+    function materialFor(color) {
+      return new THREE.MeshStandardMaterial({
+        color,
+        roughness: .48,
+        metalness: .04
+      });
+    }
+
+    function addEdges(mesh) {
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry, 20),
+        new THREE.LineBasicMaterial({ color: 0x20333a, transparent: true, opacity: .42 })
+      );
+      edges.position.copy(mesh.position);
+      edges.rotation.copy(mesh.rotation);
+      modelGroup.add(edges);
+    }
+
+    function createStud(material, x, y, z) {
+      const stud = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .12, 32), material);
+      stud.position.set(x, y, z);
+      stud.castShadow = true;
+      stud.receiveShadow = true;
+      modelGroup.add(stud);
+    }
+
+    function createSideHole(part, width, height, depth) {
+      if (!part.sideHole) return;
+      const rimMaterial = new THREE.MeshStandardMaterial({ color: 0x1f2e35, roughness: .6 });
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(.22, .05, 12, 28), rimMaterial);
+      rim.rotation.y = Math.PI / 2;
+      rim.position.set(width / 2 + .012, height * .54, 0);
+      modelGroup.add(rim);
+      const inner = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .04, 24), rimMaterial);
+      inner.rotation.z = Math.PI / 2;
+      inner.position.set(width / 2 + .02, height * .54, 0);
+      modelGroup.add(inner);
+    }
+
+    function buildPart(part) {
+      modelGroup.clear();
+      const unit = .74;
+      const width = part.cols * unit;
+      const depth = part.rows * unit;
+      const material = materialFor(part.color);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(width, part.height, depth), material);
+      body.position.y = part.height / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      modelGroup.add(body);
+      addEdges(body);
+
+      for (let col = 0; col < part.cols; col += 1) {
+        for (let row = 0; row < part.rows; row += 1) {
+          const x = -width / 2 + unit * (col + .5);
+          const z = -depth / 2 + unit * (row + .5);
+          createStud(material, x, part.height + .06, z);
+        }
+      }
+
+      createSideHole(part, width, part.height, depth);
+      controls.target.set(0, Math.max(.45, part.height * .55), 0);
+      resetView();
+      updateDetails(part);
+    }
+
+    function updateDetails(part) {
+      document.querySelector("#viewer-label").textContent = part.id + " / " + part.name;
+      document.querySelector("#part-code").textContent = part.id;
+      document.querySelector("#part-title").textContent = part.name;
+      document.querySelector("#part-description").textContent = part.description;
+      document.querySelector("#part-spec").innerHTML = [
+        ["上面の凸", part.rows + "行 × " + part.cols + "列"],
+        ["高さ", part.height > .5 ? "高さあり" : "薄い板"],
+        ["側面", part.feature]
+      ].map(([label, value]) => "<li><span>" + label + "</span><strong>" + value + "</strong></li>").join("");
+    }
+
+    function renderPartList() {
+      document.querySelector("#part-list").innerHTML = partCatalog.map(part =>
+        "<button class=\"part-btn " + (part.id === activePart.id ? "active" : "") + "\" data-id=\"" + part.id + "\" type=\"button\">" +
+          "<strong>" + part.id + " " + part.name + "</strong>" +
+          "<span>凸: " + part.rows + "行×" + part.cols + "列 / " + part.feature + "</span>" +
+        "</button>"
+      ).join("");
+
+      document.querySelectorAll(".part-btn").forEach(button => {
+        button.addEventListener("click", () => {
+          activePart = partCatalog.find(part => part.id === button.dataset.id);
+          renderPartList();
+          buildPart(activePart);
+        });
+      });
+    }
+
+    function resetView() {
+      const size = Math.max(activePart.cols, activePart.rows);
+      camera.position.set(size * 1.65, size * 1.28, size * 1.9);
+      controls.update();
+    }
+
+    function resizeRenderer() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (canvas.width !== Math.floor(width * renderer.getPixelRatio()) || canvas.height !== Math.floor(height * renderer.getPixelRatio())) {
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+      }
+    }
+
+    document.querySelector("#reset-view").addEventListener("click", resetView);
+    document.querySelector("#toggle-spin").addEventListener("click", event => {
+      autoSpin = !autoSpin;
+      event.currentTarget.textContent = "ゆっくり回す: " + (autoSpin ? "オン" : "オフ");
+    });
+
+    renderPartList();
+    buildPart(activePart);
+
+    renderer.setAnimationLoop(() => {
+      resizeRenderer();
+      if (autoSpin) modelGroup.rotation.y += .008;
+      controls.update();
+      renderer.render(scene, camera);
+    });
+  </script>
+</body>
+</html>
