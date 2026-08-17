@@ -703,26 +703,31 @@
       model.add(edges);
     }
     function addDoubleHeightDivider(width, depth, height) {
-      const dividerMaterial = new THREE.MeshBasicMaterial({ color: 0x0d806e });
+      const dividerMaterial = new THREE.MeshBasicMaterial({ color: 0x27333a });
       const y = height / 2;
-      const dashLength = .16;
-      const gap = .10;
-      function addFrontDashes() {
-        for (let x = -width / 2 + dashLength / 2; x < width / 2; x += dashLength + gap) {
-          const dash = new THREE.Mesh(new THREE.BoxGeometry(dashLength, .032, .034), dividerMaterial);
-          dash.position.set(Math.min(x, width / 2 - dashLength / 2), y, depth / 2 + .026);
-          model.add(dash);
+      const dashLength = .13;
+      const gap = .09;
+      function addDashes(length, createDash) {
+        for (let offset = -length / 2 + dashLength / 2; offset < length / 2; offset += dashLength + gap) {
+          createDash(Math.min(offset, length / 2 - dashLength / 2));
         }
       }
-      function addSideDashes() {
-        for (let z = -depth / 2 + dashLength / 2; z < depth / 2; z += dashLength + gap) {
-          const dash = new THREE.Mesh(new THREE.BoxGeometry(.034, .032, dashLength), dividerMaterial);
-          dash.position.set(width / 2 + .026, y, Math.min(z, depth / 2 - dashLength / 2));
-          model.add(dash);
-        }
-      }
-      addFrontDashes();
-      addSideDashes();
+      addDashes(width, x => {
+        const front = new THREE.Mesh(new THREE.BoxGeometry(dashLength, .022, .022), dividerMaterial);
+        front.position.set(x, y, depth / 2 + .02);
+        model.add(front);
+        const back = new THREE.Mesh(new THREE.BoxGeometry(dashLength, .022, .022), dividerMaterial);
+        back.position.set(x, y, -depth / 2 - .02);
+        model.add(back);
+      });
+      addDashes(depth, z => {
+        const right = new THREE.Mesh(new THREE.BoxGeometry(.022, .022, dashLength), dividerMaterial);
+        right.position.set(width / 2 + .02, y, z);
+        model.add(right);
+        const left = new THREE.Mesh(new THREE.BoxGeometry(.022, .022, dashLength), dividerMaterial);
+        left.position.set(-width / 2 - .02, y, z);
+        model.add(left);
+      });
     }
     function addStud(material, x, y, z) {
       const stud = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .12, 32), material);
