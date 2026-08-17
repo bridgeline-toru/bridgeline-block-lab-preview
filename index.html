@@ -793,30 +793,39 @@
       link.position.set(.05, .64, 0);
       model.add(first, second, link);
     }
+    function createProfilePrism(profile, width) {
+      const shape = new THREE.Shape();
+      shape.moveTo(profile[0][0], profile[0][1]);
+      profile.slice(1).forEach(point => shape.lineTo(point[0], point[1]));
+      shape.closePath();
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth: width,
+        steps: 1,
+        bevelEnabled: false,
+        curveSegments: 1
+      });
+      geometry.rotateY(Math.PI / 2);
+      geometry.translate(-width / 2, 0, 0);
+      geometry.computeVertexNormals();
+      return geometry;
+    }
     function createSlopeGeometry(width, depth, height, inverse) {
       const low = .08;
       const frontHeight = inverse ? height : low;
       const backHeight = inverse ? low : height;
-      const x = width / 2;
-      const z = depth / 2;
-      const vertices = [
-        -x, 0, -z,  x, 0, -z,  x, 0, z,  -x, 0, z,
-        -x, frontHeight, -z,  x, frontHeight, -z,
-        x, backHeight, z,  -x, backHeight, z
-      ];
-      const indices = [
-        0, 2, 1, 0, 3, 2,
-        0, 1, 5, 0, 5, 4,
-        1, 2, 6, 1, 6, 5,
-        2, 3, 7, 2, 7, 6,
-        3, 0, 4, 3, 4, 7,
-        4, 5, 6, 4, 6, 7
-      ];
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-      geometry.setIndex(indices);
-      geometry.computeVertexNormals();
-      return geometry;
+      return createProfilePrism([
+        [-depth / 2, frontHeight],
+        [-depth / 2, 0],
+        [depth / 2, 0],
+        [depth / 2, backHeight]
+      ], width);
+    }
+    function createRoofRidgeGeometry(width, depth, height) {
+      return createProfilePrism([
+        [-depth / 2, 0],
+        [0, height],
+        [depth / 2, 0]
+      ], width);
     }
     function addRoofShape(part, target) {
       const material = materialFor(hexColor(part.color));
@@ -835,22 +844,7 @@
           target.add(stud);
         }
       } else if (part.shape === "roof-ridge") {
-        const geometry = new THREE.CylinderGeometry(0, 0, 0, 3);
-        geometry.dispose();
-        const vertices = [
-          -width / 2, 0, -depth / 2, width / 2, 0, -depth / 2,
-          width / 2, 0, depth / 2, -width / 2, 0, depth / 2,
-          -width / 2, height, 0, width / 2, height, 0
-        ];
-        const indices = [
-          0, 2, 1, 0, 3, 2, 0, 1, 5, 0, 5, 4,
-          1, 2, 5, 2, 3, 4, 2, 4, 5, 3, 0, 4
-        ];
-        const roofGeometry = new THREE.BufferGeometry();
-        roofGeometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-        roofGeometry.setIndex(indices);
-        roofGeometry.computeVertexNormals();
-        mesh = new THREE.Mesh(roofGeometry, material);
+        mesh = new THREE.Mesh(createRoofRidgeGeometry(width, depth, height), material);
         target.add(mesh);
       } else if (part.shape === "roof-corner") {
         mesh = new THREE.Mesh(new THREE.ConeGeometry(Math.max(width, depth) * .72, height, 4), material);
@@ -865,6 +859,7 @@
         }
       });
     }
+
     function buildPart(part) {
       activePart = part;
       model.clear();
