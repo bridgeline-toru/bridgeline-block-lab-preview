@@ -55,11 +55,16 @@
     .lead { margin: 8px 0 0; line-height: 1.7; color: var(--muted); font-size: 14px; }
     .hint { margin-top: 16px; padding: 10px 12px; border-left: 4px solid var(--yellow); background: #fff8dc; font-size: 13px; line-height: 1.6; }
 
-    .parts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
-    .part-card { min-height: 140px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
-    .part-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .part-shape { height: 38px; display: flex; gap: 4px; align-items: flex-end; }
-    .stud { width: 15px; height: 15px; background: var(--part-color); border-radius: 3px 3px 1px 1px; box-shadow: inset 0 -3px rgba(0,0,0,.08); }
+    .parts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .part-card { min-height: 196px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .part-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; min-height: 72px; }
+    .part-model { position: relative; width: calc(var(--cols) * 13px + 10px); min-width: 42px; height: 68px; margin: 2px 6px 0 10px; }
+    .block-top { position: absolute; z-index: 3; top: 6px; left: 0; display: grid; grid-template-columns: repeat(var(--cols), 11px); grid-template-rows: repeat(var(--rows), 11px); gap: 2px; padding: 5px; background: var(--part-color); border: 1px solid rgba(0,0,0,.18); transform: skewX(-18deg); transform-origin: left bottom; box-shadow: inset 0 3px rgba(255,255,255,.28); }
+    .block-stud { display: block; border-radius: 50%; background: rgba(255,255,255,.24); border: 1px solid rgba(0,0,0,.14); box-shadow: inset 0 -2px rgba(0,0,0,.12); }
+    .block-front { position: absolute; z-index: 2; top: 28px; left: 1px; width: calc(var(--cols) * 13px + 10px); height: var(--block-height); background: color-mix(in srgb, var(--part-color), #000 16%); border: 1px solid rgba(0,0,0,.18); transform: skewY(-16deg); transform-origin: top left; }
+    .block-side { position: absolute; z-index: 1; top: 20px; right: -9px; width: 13px; height: calc(var(--block-height) + 9px); background: color-mix(in srgb, var(--part-color), #000 30%); border: 1px solid rgba(0,0,0,.18); transform: skewY(38deg); transform-origin: top left; }
+    .side-hole { position: absolute; z-index: 4; top: 39px; right: -4px; width: 8px; height: 8px; border: 2px solid rgba(255,255,255,.75); border-radius: 50%; background: #25313a; }
+    .part-code { display: inline-block; margin-right: 5px; padding: 2px 4px; border-radius: 3px; background: #edf2ef; color: #52615b; font-size: 10px; vertical-align: 2px; }
     .part-card h3 { margin: 0; font-size: 16px; }
     .part-card p { min-height: 34px; margin: 7px 0 12px; font-size: 12px; color: var(--muted); line-height: 1.4; }
     .counter { display: flex; align-items: center; gap: 10px; }
@@ -138,7 +143,7 @@
           <p>おうちの余りブロックから、新しい作品をつくろう</p>
         </div>
       </div>
-      <div class="status">試作版 / データは保存しません</div>
+      <div class="status">v0.2 / 標準サイズのみ / データは保存しません</div>
     </header>
 
     <nav class="steps" aria-label="作業の進み具合">
@@ -152,8 +157,8 @@
         <section class="panel">
           <div class="panel-inner">
             <h2>持ってきたブロックを数えよう</h2>
-            <p class="lead">同じ仲間を見つけたら、下の見本をタップして数えます。迷った部品は「その他」で大丈夫。</p>
-            <div class="hint">紙コップ一杯分を、少しずつ数えます。全部を正確に数えなくても、作るのに大事そうなものからでOK。</div>
+            <p class="lead">上の凸の数、ブロックの高さ、横穴や接続棒の長さを、実物と立体図で見比べます。迷った部品は「その他」で大丈夫。</p>
+            <div class="hint">今回は標準サイズだけを数えます。大型幼児向け・小型・磁石・電動・破損部品は混ぜません。紙コップ一杯分を、少しずつ見ていこう。</div>
             <div class="parts-grid" id="parts-grid"></div>
           </div>
         </section>
@@ -237,26 +242,38 @@
 
   <script>
     const parts = [
-      { id: "square", name: "四角ブロック", description: "短くて、積みやすい仲間", color: "#e96d55", studs: 2 },
-      { id: "long", name: "長いブロック", description: "橋や壁に使いやすい仲間", color: "#f0b83a", studs: 4 },
-      { id: "flat", name: "平らな板", description: "屋根や土台に使いやすい仲間", color: "#3e9d87", studs: 3 },
-      { id: "connect", name: "丸・つなぐ部品", description: "動きや飾りに使える仲間", color: "#4f82ba", studs: 2 },
-      { id: "other", name: "その他", description: "どの仲間か迷う部品", color: "#8b7eae", studs: 3 }
+      { id: "B22", code: "B22", name: "2×2 高さあり", description: "凸が2行×2列。小さな柱や壁。", color: "#e96d55", cols: 2, rows: 2, height: "24px" },
+      { id: "B24", code: "B24", name: "2×4 高さあり", description: "凸が2行×4列。基本の壁や車体。", color: "#e96d55", cols: 4, rows: 2, height: "24px" },
+      { id: "B26", code: "B26", name: "2×6 高さあり", description: "凸が2行×6列。長い壁や橋。", color: "#e96d55", cols: 6, rows: 2, height: "24px" },
+      { id: "B28", code: "B28", name: "2×8 高さあり", description: "凸が2行×8列。長い橋や土台。", color: "#e96d55", cols: 8, rows: 2, height: "24px" },
+      { id: "B14H", code: "B14H", name: "1×4 横穴あり", description: "細長く、側面に穴がある部品。", color: "#4f82ba", cols: 4, rows: 1, height: "24px", sideHole: true },
+      { id: "P22", code: "P22", name: "2×2 薄い板", description: "高さが低い。屋根や飾り。", color: "#3e9d87", cols: 2, rows: 2, height: "10px" },
+      { id: "P24", code: "P24", name: "2×4 薄い板", description: "高さが低い。屋根や土台。", color: "#3e9d87", cols: 4, rows: 2, height: "10px" },
+      { id: "P26", code: "P26", name: "2×6 薄い板", description: "高さが低い。屋根や橋。", color: "#3e9d87", cols: 6, rows: 2, height: "10px" },
+      { id: "P28", code: "P28", name: "2×8 薄い板", description: "高さが低い。長い土台。", color: "#3e9d87", cols: 8, rows: 2, height: "10px" },
+      { id: "P44", code: "P44", name: "4×4 薄い板", description: "凸が4行×4列。広い土台。", color: "#3e9d87", cols: 4, rows: 4, height: "10px" },
+      { id: "BASE", code: "BASE", name: "大きな土台", description: "作品のいちばん下に置く土台。", color: "#f0b83a", cols: 8, rows: 4, height: "8px" },
+      { id: "WHEEL", code: "WHEEL", name: "車輪セット", description: "同じ大きさの車輪2個で1セット。", color: "#353c47", cols: 2, rows: 1, height: "20px" },
+      { id: "PIN-S", code: "PIN-S", name: "短い接続棒", description: "短くつなぐための部品。", color: "#8b7eae", cols: 2, rows: 1, height: "16px" },
+      { id: "PIN-L", code: "PIN-L", name: "長い接続棒", description: "長くつなぐための部品。", color: "#8b7eae", cols: 5, rows: 1, height: "16px" },
+      { id: "JOINT", code: "JOINT", name: "ジョイント", description: "向きを変えてつなぐ部品。", color: "#f0b83a", cols: 2, rows: 2, height: "16px" },
+      { id: "OTHER", code: "OTHER", name: "その他", description: "どの仲間か迷う部品。", color: "#8c959d", cols: 3, rows: 1, height: "16px" }
     ];
 
     const themes = [
-      { id: "car", name: "はこぶ車", copy: "だれかの大事なものを運ぶ車", need: { square: 4, long: 4, flat: 2, wheels: 2 } },
-      { id: "castle", name: "まもるおしろ", copy: "入り口と見張り台のあるおしろ", need: { square: 6, long: 2, flat: 2 } },
-      { id: "animal", name: "ふしぎな生きもの", copy: "新しい生きものを発明しよう", need: { square: 4, long: 2, connect: 2 } },
-      { id: "box", name: "たからばこ", copy: "大事なものをしまえる箱", need: { square: 4, long: 2, flat: 1 } },
-      { id: "robot", name: "うごかないロボット", copy: "役目を持ったロボット", need: { square: 5, long: 4, flat: 2, connect: 1 } }
+      { id: "car", name: "はこぶ車", copy: "だれかの大事なものを運ぶ車", need: { B24: 4, P24: 1, WHEEL: 2 } },
+      { id: "castle", name: "まもるおしろ", copy: "入り口と見張り台のあるおしろ", need: { B24: 6, B26: 2, P24: 2 } },
+      { id: "animal", name: "ふしぎな生きもの", copy: "新しい生きものを発明しよう", need: { B22: 4, B24: 2, JOINT: 2 } },
+      { id: "box", name: "たからばこ", copy: "大事なものをしまえる箱", need: { B24: 4, B26: 2, P24: 1 } },
+      { id: "robot", name: "うごかないロボット", copy: "役目を持ったロボット", need: { B24: 4, B26: 2, P24: 2, "PIN-S": 1 } }
     ];
 
     const sharedParts = [
-      { id: "wheels", name: "車輪", note: "車や動くものに", stock: 12 },
-      { id: "long", name: "長い板", note: "橋・屋根・壁に", stock: 18 },
-      { id: "flat", name: "平らな板", note: "土台・屋根に", stock: 14 },
-      { id: "connect", name: "ジョイント", note: "つなぐ・飾る時に", stock: 16 }
+      { id: "B26", name: "2×6 高さあり", note: "長い壁・橋に", stock: 18 },
+      { id: "P24", name: "2×4 薄い板", note: "屋根・土台に", stock: 16 },
+      { id: "WHEEL", name: "車輪セット", note: "車に", stock: 12 },
+      { id: "PIN-S", name: "短い接続棒", note: "つなぐ時に", stock: 16 },
+      { id: "JOINT", name: "ジョイント", note: "向きを変える時に", stock: 12 }
     ];
 
     const counts = Object.fromEntries(parts.map(part => [part.id, 0]));
@@ -272,10 +289,14 @@
       document.getElementById("parts-grid").innerHTML = parts.map(part => `
         <article class="part-card" style="--part-color:${part.color}">
           <div class="part-head">
-            <div class="part-shape">${Array.from({ length: part.studs }, () => '<span class="stud"></span>').join("")}</div>
+            <div class="part-model" style="--part-color:${part.color}; --cols:${part.cols}; --rows:${part.rows}; --block-height:${part.height}">
+              <div class="block-side"></div><div class="block-front"></div>
+              <div class="block-top">${Array.from({ length: part.cols * part.rows }, () => '<span class="block-stud"></span>').join("")}</div>
+              ${part.sideHole ? '<span class="side-hole"></span>' : ""}
+            </div>
             <span class="count-label">見つけた数</span>
           </div>
-          <h3>${part.name}</h3>
+          <h3><span class="part-code">${part.code}</span>${part.name}</h3>
           <p>${part.description}</p>
           <div class="counter">
             <button class="icon-btn" aria-label="${part.name}を1つ減らす" onclick="changeCount('${part.id}', -1)">−</button>
