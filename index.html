@@ -811,7 +811,7 @@
     }
     function createSlopeGeometry(width, depth, height, inverse) {
       const low = .08;
-      const shelfDepth = Math.min(.48, depth * .34);
+      const shelfDepth = Math.min(.74, depth * .5);
       if (inverse) {
         return createProfilePrism([
           [-depth / 2, height],
@@ -846,7 +846,7 @@
       if (part.shape === "slope" || part.shape === "inverse-slope") {
         mesh = new THREE.Mesh(createSlopeGeometry(width, depth, height, part.shape === "inverse-slope"), material);
         target.add(mesh);
-        const shelfDepth = Math.min(.48, depth * .34);
+        const shelfDepth = Math.min(.74, depth * .5);
         const studZ = part.shape === "inverse-slope"
           ? depth / 2 - shelfDepth / 2
           : -depth / 2 + shelfDepth / 2;
