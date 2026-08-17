@@ -305,6 +305,13 @@
       { id: "B14H", code: "B14H", name: "1×4 横穴あり", description: "細長く、側面に穴がある部品。", color: "#4f82ba", cols: 4, rows: 1, height: "24px", sideHole: true },
       { id: "B12H2", code: "B12H2", name: "1×2 高さ2", description: "ふつうの高さ2個分。細く高い柱や塔。", color: "#c85b49", cols: 2, rows: 1, height: "48px" },
       { id: "B14H2", code: "B14H2", name: "1×4 高さ2", description: "ふつうの高さ2個分。高い壁や門。", color: "#c85b49", cols: 4, rows: 1, height: "48px" },
+      { id: "S22", code: "S22", name: "2×2 ななめ", description: "前が低く、後ろが高い斜面。屋根や車の前。", color: "#e3a640", cols: 2, rows: 2, height: "24px", shape: "slope" },
+      { id: "S23", code: "S23", name: "2×3 ななめ", description: "少し長い斜面。車の前や屋根。", color: "#e3a640", cols: 3, rows: 2, height: "24px", shape: "slope" },
+      { id: "S24", code: "S24", name: "2×4 ななめ", description: "長い斜面。車の前や大きな屋根。", color: "#e3a640", cols: 4, rows: 2, height: "24px", shape: "slope" },
+      { id: "SI24", code: "SI24", name: "2×4 逆ななめ", description: "前が高く、後ろが低い斜面。屋根の反対側。", color: "#d69234", cols: 4, rows: 2, height: "24px", shape: "inverse-slope" },
+      { id: "R22", code: "R22", name: "2×2 屋根のてっぺん", description: "両側が下がる三角の屋根。", color: "#bd6b55", cols: 2, rows: 2, height: "24px", shape: "roof-ridge" },
+      { id: "RC22", code: "RC22", name: "2×2 角の屋根", description: "四方へ下がる角屋根。塔やお城。", color: "#b85d51", cols: 2, rows: 2, height: "24px", shape: "roof-corner" },
+
       { id: "B22H2", code: "B22H2", name: "2×2 高さ2", description: "ふつうの高さ2個分。高い柱や塔。", color: "#c85b49", cols: 2, rows: 2, height: "48px" },
       { id: "B24H2", code: "B24H2", name: "2×4 高さ2", description: "ふつうの高さ2個分。高い壁や車体。", color: "#c85b49", cols: 4, rows: 2, height: "48px" },
       { id: "B26H2", code: "B26H2", name: "2×6 高さ2", description: "ふつうの高さ2個分。高い橋や建物。", color: "#c85b49", cols: 6, rows: 2, height: "48px" },
@@ -786,6 +793,78 @@
       link.position.set(.05, .64, 0);
       model.add(first, second, link);
     }
+    function createSlopeGeometry(width, depth, height, inverse) {
+      const low = .08;
+      const frontHeight = inverse ? height : low;
+      const backHeight = inverse ? low : height;
+      const x = width / 2;
+      const z = depth / 2;
+      const vertices = [
+        -x, 0, -z,  x, 0, -z,  x, 0, z,  -x, 0, z,
+        -x, frontHeight, -z,  x, frontHeight, -z,
+        x, backHeight, z,  -x, backHeight, z
+      ];
+      const indices = [
+        0, 2, 1, 0, 3, 2,
+        0, 1, 5, 0, 5, 4,
+        1, 2, 6, 1, 6, 5,
+        2, 3, 7, 2, 7, 6,
+        3, 0, 4, 3, 4, 7,
+        4, 5, 6, 4, 6, 7
+      ];
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+    function addRoofShape(part, target) {
+      const material = materialFor(hexColor(part.color));
+      const unit = .74;
+      const width = part.cols * unit;
+      const depth = part.rows * unit;
+      const height = modelHeightFor(part);
+      let mesh;
+      if (part.shape === "slope" || part.shape === "inverse-slope") {
+        mesh = new THREE.Mesh(createSlopeGeometry(width, depth, height, part.shape === "inverse-slope"), material);
+        target.add(mesh);
+        const studZ = part.shape === "inverse-slope" ? -depth / 2 + .22 : depth / 2 - .22;
+        for (let col = 0; col < part.cols; col += 1) {
+          const stud = new THREE.Mesh(new THREE.CylinderGeometry(.20, .20, .10, 28), material);
+          stud.position.set(-width / 2 + unit * (col + .5), height + .05, studZ);
+          target.add(stud);
+        }
+      } else if (part.shape === "roof-ridge") {
+        const geometry = new THREE.CylinderGeometry(0, 0, 0, 3);
+        geometry.dispose();
+        const vertices = [
+          -width / 2, 0, -depth / 2, width / 2, 0, -depth / 2,
+          width / 2, 0, depth / 2, -width / 2, 0, depth / 2,
+          -width / 2, height, 0, width / 2, height, 0
+        ];
+        const indices = [
+          0, 2, 1, 0, 3, 2, 0, 1, 5, 0, 5, 4,
+          1, 2, 5, 2, 3, 4, 2, 4, 5, 3, 0, 4
+        ];
+        const roofGeometry = new THREE.BufferGeometry();
+        roofGeometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+        roofGeometry.setIndex(indices);
+        roofGeometry.computeVertexNormals();
+        mesh = new THREE.Mesh(roofGeometry, material);
+        target.add(mesh);
+      } else if (part.shape === "roof-corner") {
+        mesh = new THREE.Mesh(new THREE.ConeGeometry(Math.max(width, depth) * .72, height, 4), material);
+        mesh.rotation.y = Math.PI / 4;
+        mesh.position.y = height / 2;
+        target.add(mesh);
+      }
+      target.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+    }
     function buildPart(part) {
       activePart = part;
       model.clear();
@@ -795,6 +874,8 @@
         addPin(part);
       } else if (part.id === "JOINT") {
         addJoint(part);
+      } else if (part.shape) {
+        addRoofShape(part, model);
       } else {
         const unit = .74;
         const width = part.cols * unit;
@@ -834,7 +915,7 @@
       document.querySelector("#viewer-3d-spec").innerHTML = [
         ["上面の凸", part.rows + "行 × " + part.cols + "列"],
         ["高さ", heightText],
-        ["特徴", part.sideHole ? "側面に穴あり" : (part.id === "WHEEL" ? "車輪2個で1セット" : part.id === "PIN-S" || part.id === "PIN-L" ? "接続棒" : "横穴なし")]
+        ["特徴", part.shape === "slope" ? "前から後ろへ上がる斜面" : part.shape === "inverse-slope" ? "前から後ろへ下がる斜面" : part.shape === "roof-ridge" ? "両側が下がる屋根" : part.shape === "roof-corner" ? "四方へ下がる角屋根" : part.sideHole ? "側面に穴あり" : (part.id === "WHEEL" ? "車輪2個で1セット" : part.id === "PIN-S" || part.id === "PIN-L" ? "接続棒" : "横穴なし")]
       ].map(([name, value]) => "<li><span>" + name + "</span><strong>" + value + "</strong></li>").join("");
     }
     function resetView() {
@@ -925,6 +1006,10 @@
         const second = new THREE.Mesh(new THREE.SphereGeometry(.36, 28, 20), material);
         second.position.set(.42, .82, 0);
         thumbnailModel.add(first, second);
+        return;
+      }
+      if (part.shape) {
+        addRoofShape(part, thumbnailModel);
         return;
       }
       if (!part.cols || !part.rows) return;
