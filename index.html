@@ -4,6 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ブロック発明ラボ - 試作画面</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+    }
+  }
+  </script>
   <style>
     :root {
       --ink: #18232c;
@@ -56,7 +64,7 @@
     .hint { margin-top: 16px; padding: 10px 12px; border-left: 4px solid var(--yellow); background: #fff8dc; font-size: 13px; line-height: 1.6; }
 
     .parts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
-    .part-card { min-height: 218px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .part-card { min-height: 252px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
     .part-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; min-height: 92px; }
     .part-sketch { width: 178px; height: 88px; max-width: 70%; display: block; margin: -2px 0 0 2px; }
     .sketch-caption { margin: 0 0 2px; color: #62716d; font-size: 10px; letter-spacing: 0; }
@@ -68,7 +76,10 @@
     .side-hole { position: absolute; z-index: 4; top: 39px; right: -4px; width: 8px; height: 8px; border: 2px solid rgba(255,255,255,.75); border-radius: 50%; background: #25313a; }
     .part-code { display: inline-block; margin-right: 5px; padding: 2px 4px; border-radius: 3px; background: #edf2ef; color: #52615b; font-size: 10px; vertical-align: 2px; }
     .part-card h3 { margin: 0; font-size: 16px; }
-    .part-card p { min-height: 34px; margin: 7px 0 12px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .part-card p { min-height: 34px; margin: 7px 0 10px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .part-actions { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .view-3d-btn { min-height:34px; padding:0 10px; border:1px solid #a7c9bf; border-radius:5px; color:var(--green); background:#f7fcf9; cursor:pointer; font-size:12px; font-weight:700; }
+    .view-3d-btn:hover { background:var(--green-soft); border-color:var(--green); }
     .counter { display: flex; align-items: center; gap: 10px; }
     .icon-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); cursor: pointer; font-size: 20px; line-height: 1; }
     .icon-btn:hover { border-color: var(--green); color: var(--green); }
@@ -122,6 +133,20 @@
     .result-box h3 { margin: 0 0 10px; font-size: 15px; }
     .result-box ul { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.8; font-size: 14px; }
 
+    .viewer-modal[hidden] { display:none; }
+    .viewer-modal { position:fixed; z-index:30; inset:0; display:grid; place-items:center; padding:16px; background:rgba(20,32,38,.56); }
+    .viewer-modal-shell { position:relative; display:grid; grid-template-columns:minmax(0,1fr) 250px; width:min(960px,100%); min-height:570px; overflow:hidden; background:#f5f7f4; box-shadow:0 24px 60px rgba(0,0,0,.27); }
+    .viewer-modal-canvas { position:relative; min-height:570px; background:#e6efeb; }
+    #part-3d-canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+    .viewer-modal-info { padding:26px 22px; border-left:1px solid var(--line); background:#fff; }
+    .viewer-modal-info h2 { margin:0; font-size:20px; }
+    .viewer-modal-info p { margin:10px 0 18px; color:var(--muted); line-height:1.7; font-size:13px; }
+    .viewer-modal-code { display:inline-block; margin-bottom:8px; padding:3px 5px; border-radius:3px; background:#edf1ee; color:#4e6259; font-size:11px; font-weight:800; }
+    .viewer-spec { margin:0; padding:0; list-style:none; }
+    .viewer-spec li { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid #edf0ed; font-size:13px; }
+    .viewer-spec span { color:var(--muted); }
+    .viewer-close { position:absolute; z-index:2; top:13px; right:13px; width:36px; height:36px; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--ink); cursor:pointer; font-size:22px; line-height:1; }
+    .viewer-reset { position:absolute; z-index:2; left:16px; bottom:16px; min-height:38px; padding:0 12px; border:1px solid var(--line); border-radius:5px; background:rgba(255,255,255,.92); color:var(--ink); font-size:13px; font-weight:700; cursor:pointer; }
     @media (max-width: 780px) {
       .app { padding: 16px; }
       .topbar { align-items: flex-start; }
@@ -132,6 +157,10 @@
       .steps { gap: 5px; }
       .step { padding: 9px; }
       .step span { display: none; }
+      .viewer-modal { padding:0; }
+      .viewer-modal-shell { grid-template-columns:1fr; width:100%; min-height:100vh; }
+      .viewer-modal-canvas { min-height:58vh; }
+      .viewer-modal-info { border-left:0; border-top:1px solid var(--line); }
     }
   </style>
 </head>
@@ -241,6 +270,21 @@
       </div>
     </section>
   </main>
+    <section class="viewer-modal" id="part-3d-modal" hidden aria-modal="true" role="dialog" aria-labelledby="viewer-3d-title">
+      <div class="viewer-modal-shell">
+        <button class="viewer-close" id="viewer-close" type="button" aria-label="立体図を閉じる">×</button>
+        <div class="viewer-modal-canvas">
+          <canvas id="part-3d-canvas"></canvas>
+          <button class="viewer-reset" id="viewer-reset" type="button">見やすい角度に戻す</button>
+        </div>
+        <aside class="viewer-modal-info">
+          <span class="viewer-modal-code" id="viewer-3d-code">B24</span>
+          <h2 id="viewer-3d-title">2×4 高さあり</h2>
+          <p id="viewer-3d-description"></p>
+          <ul class="viewer-spec" id="viewer-3d-spec"></ul>
+        </aside>
+      </div>
+    </section>
 
   <script>
     const parts = [
@@ -278,6 +322,9 @@
       { id: "JOINT", name: "ジョイント", note: "向きを変える時に", stock: 12 }
     ];
 
+    window.getBlockPart = id => parts.find(part => part.id === id);
+    window.openPart3d = id => window.dispatchEvent(new CustomEvent("open-block-3d", { detail: id }));
+
     const counts = Object.fromEntries(parts.map(part => [part.id, 0]));
     const borrowed = Object.fromEntries(sharedParts.map(part => [part.id, 0]));
     let selectedTheme = null;
@@ -296,10 +343,13 @@
           </div>
           <h3><span class="part-code">${part.code}</span>${part.name}</h3>
           <p>${part.description}</p>
-          <div class="counter">
-            <button class="icon-btn" aria-label="${part.name}を1つ減らす" onclick="changeCount('${part.id}', -1)">−</button>
-            <strong class="count" id="count-${part.id}">${counts[part.id]}</strong>
-            <button class="icon-btn" aria-label="${part.name}を1つ増やす" onclick="changeCount('${part.id}', 1)">＋</button>
+          <div class="part-actions">
+            ${part.id === "OTHER" ? '<span></span>' : '<button class="view-3d-btn" type="button" onclick="openPart3d(\'' + part.id + '\')">立体図</button>'}
+            <div class="counter">
+              <button class="icon-btn" aria-label="${part.name}を1つ減らす" onclick="changeCount('${part.id}', -1)">−</button>
+              <strong class="count" id="count-${part.id}">${counts[part.id]}</strong>
+              <button class="icon-btn" aria-label="${part.name}を1つ増やす" onclick="changeCount('${part.id}', 1)">＋</button>
+            </div>
           </div>
         </article>
       `).join("");
@@ -562,6 +612,209 @@
 
     renderParts();
     renderInventory();
+  </script>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    const modal = document.querySelector("#part-3d-modal");
+    const canvas = document.querySelector("#part-3d-canvas");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xe6efeb);
+    const camera = new THREE.PerspectiveCamera(34, 1, .1, 100);
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.minDistance = 3.7;
+    controls.maxDistance = 13;
+    controls.maxPolarAngle = Math.PI * .48;
+    controls.target.set(0, .5, 0);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6a8178, 2.1));
+    const key = new THREE.DirectionalLight(0xffffff, 2.35);
+    key.position.set(5, 7, 4);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xa9d4c8, .65);
+    fill.position.set(-5, 3, -3);
+    scene.add(fill);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.MeshStandardMaterial({ color: 0xd9e7e0, roughness: 1 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+    const grid = new THREE.GridHelper(12, 12, 0xa4b8ae, 0xc9d7d1);
+    scene.add(grid);
+
+    const model = new THREE.Group();
+    scene.add(model);
+    let activePart = null;
+
+    function hexColor(value) { return Number.parseInt(value.replace("#", ""), 16); }
+    function materialFor(color) { return new THREE.MeshStandardMaterial({ color, roughness: .48, metalness: .04 }); }
+    function addEdges(mesh) {
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry, 20),
+        new THREE.LineBasicMaterial({ color: 0x20333a, transparent: true, opacity: .42 })
+      );
+      edges.position.copy(mesh.position);
+      edges.rotation.copy(mesh.rotation);
+      model.add(edges);
+    }
+    function addStud(material, x, y, z) {
+      const stud = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .12, 32), material);
+      stud.position.set(x, y, z);
+      stud.castShadow = true;
+      stud.receiveShadow = true;
+      model.add(stud);
+    }
+    function addSideHole(width, height) {
+      const dark = new THREE.MeshStandardMaterial({ color: 0x1f2e35, roughness: .6 });
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(.22, .05, 12, 28), dark);
+      rim.rotation.y = Math.PI / 2;
+      rim.position.set(width / 2 + .012, height * .54, 0);
+      model.add(rim);
+      const inner = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .04, 24), dark);
+      inner.rotation.z = Math.PI / 2;
+      inner.position.set(width / 2 + .02, height * .54, 0);
+      model.add(inner);
+    }
+    function addWheelSet() {
+      const rubber = new THREE.MeshStandardMaterial({ color: 0x394550, roughness: .72 });
+      const hub = new THREE.MeshStandardMaterial({ color: 0xc8d8d1, roughness: .4 });
+      [-.68, .68].forEach(x => {
+        const tire = new THREE.Mesh(new THREE.TorusGeometry(.5, .16, 16, 36), rubber);
+        tire.rotation.y = Math.PI / 2;
+        tire.position.set(x, .56, 0);
+        model.add(tire);
+        const center = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .1, 28), hub);
+        center.rotation.z = Math.PI / 2;
+        center.position.set(x, .56, 0);
+        model.add(center);
+      });
+    }
+    function addPin(part) {
+      const material = materialFor(hexColor(part.color));
+      const length = part.id === "PIN-L" ? 3.3 : 1.65;
+      const pin = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, length, 28), material);
+      pin.rotation.z = Math.PI / 2;
+      pin.position.y = .3;
+      model.add(pin);
+      [-length / 2, length / 2].forEach(x => {
+        const end = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .12, 28), material);
+        end.rotation.z = Math.PI / 2;
+        end.position.set(x, .3, 0);
+        model.add(end);
+      });
+    }
+    function addJoint(part) {
+      const material = materialFor(hexColor(part.color));
+      const first = new THREE.Mesh(new THREE.SphereGeometry(.46, 28, 20), material);
+      first.position.set(-.36, .5, 0);
+      const second = new THREE.Mesh(new THREE.SphereGeometry(.36, 28, 20), material);
+      second.position.set(.42, .82, 0);
+      const link = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .85, 20), material);
+      link.rotation.z = Math.PI / 2.78;
+      link.position.set(.05, .64, 0);
+      model.add(first, second, link);
+    }
+    function buildPart(part) {
+      activePart = part;
+      model.clear();
+      if (part.id === "WHEEL") {
+        addWheelSet();
+      } else if (part.id === "PIN-S" || part.id === "PIN-L") {
+        addPin(part);
+      } else if (part.id === "JOINT") {
+        addJoint(part);
+      } else {
+        const unit = .74;
+        const width = part.cols * unit;
+        const depth = part.rows * unit;
+        const height = Number.parseInt(part.height, 10) > 12 ? .92 : .28;
+        const material = materialFor(hexColor(part.color));
+        const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
+        body.position.y = height / 2;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        model.add(body);
+        addEdges(body);
+        for (let col = 0; col < part.cols; col += 1) {
+          for (let row = 0; row < part.rows; row += 1) {
+            const x = -width / 2 + unit * (col + .5);
+            const z = -depth / 2 + unit * (row + .5);
+            addStud(material, x, height + .06, z);
+          }
+        }
+        if (part.sideHole) addSideHole(width, height);
+      }
+      updateViewerInfo(part);
+      resetView();
+    }
+    function updateViewerInfo(part) {
+      const height = Number.parseInt(part.height, 10) > 12 ? "高さあり" : "薄い板";
+      document.querySelector("#viewer-3d-code").textContent = part.code;
+      document.querySelector("#viewer-3d-title").textContent = part.name;
+      document.querySelector("#viewer-3d-description").textContent = part.description;
+      document.querySelector("#viewer-3d-spec").innerHTML = [
+        ["上面の凸", part.rows + "行 × " + part.cols + "列"],
+        ["高さ", height],
+        ["特徴", part.sideHole ? "側面に穴あり" : (part.id === "WHEEL" ? "車輪2個で1セット" : part.id === "PIN-S" || part.id === "PIN-L" ? "接続棒" : "横穴なし")]
+      ].map(([name, value]) => "<li><span>" + name + "</span><strong>" + value + "</strong></li>").join("");
+    }
+    function resetView() {
+      if (!activePart) return;
+      const size = Math.max(activePart.cols || 3, activePart.rows || 2);
+      camera.position.set(size * 1.62, size * 1.28, size * 1.9);
+      controls.target.set(0, .52, 0);
+      controls.update();
+    }
+    function resize() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (!width || !height) return;
+      if (canvas.width !== Math.floor(width * renderer.getPixelRatio()) || canvas.height !== Math.floor(height * renderer.getPixelRatio())) {
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+      }
+    }
+    function openViewer(id) {
+      const part = window.getBlockPart(id);
+      if (!part) return;
+      modal.hidden = false;
+      document.body.style.overflow = "hidden";
+      buildPart(part);
+      requestAnimationFrame(resize);
+    }
+    function closeViewer() {
+      modal.hidden = true;
+      document.body.style.overflow = "";
+    }
+    document.querySelector("#viewer-close").addEventListener("click", closeViewer);
+    document.querySelector("#viewer-reset").addEventListener("click", resetView);
+    modal.addEventListener("click", event => { if (event.target === modal) closeViewer(); });
+    window.addEventListener("keydown", event => { if (event.key === "Escape" && !modal.hidden) closeViewer(); });
+    window.addEventListener("open-block-3d", event => openViewer(event.detail));
+
+    renderer.setAnimationLoop(() => {
+      if (!modal.hidden) {
+        resize();
+        controls.update();
+        renderer.render(scene, camera);
+      }
+    });
   </script>
 </body>
 </html>
